@@ -18,3 +18,7 @@ Inkt en Cel zijn gemaakt door JJ van Schelven. Ze gebruiken de volgende onderdel
 Inkt en Cel zijn onafhankelijke projecten. Ze zijn niet verbonden aan, gesponsord door of goedgekeurd door Microsoft. Microsoft, Word, Excel en Office zijn merken van Microsoft Corporation. Ze worden alleen genoemd om aan te geven met welke bestandsformaten Inkt en Cel kunnen werken (.docx en .xlsx).
 
 Lettertypen als Aptos, Calibri en Segoe UI worden niet meegeleverd. Inkt en Cel gebruiken ze alleen als ze al op de computer staan; anders valt de tekst terug op een ander lettertype.
+
+## Linux-programma (Electron)
+
+De Linux-versies van Inkt en Cel (map `desktop/`, downloads op de Releases-pagina) bevatten **Electron** (MIT-licentie, © GitHub Inc. en de Electron-bijdragers, https://www.electronjs.org) met daarin **Chromium** (BSD-licentie en andere open-sourcelicenties) en **Node.js** (MIT-licentie). De volledige licentieteksten zitten in elk Linux-pakket (`LICENSE.electron.txt` en `LICENSES.chromium.html`). Gebouwd met **electron-builder** (MIT-licentie).

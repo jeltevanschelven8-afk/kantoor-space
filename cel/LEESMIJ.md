@@ -2,7 +2,7 @@
 
 **Gemaakt door JJ van Schelven.** Versie 2.0 · open source.
 
-Een rekenblad in de browser met de vertrouwde indeling van een lint met tabbladen. Zelfde stijl als Inkt (de tekstverwerker in de map erboven), maar dan in rekenblad-groen. Open source (MIT-licentie, zie `LICENSE` in de map erboven).
+Een rekenprogramma voor Windows en Linux met de vertrouwde indeling van een lint met tabbladen. Zelfde stijl als Inkt (de tekstverwerker in de map erboven), maar dan in rekenblad-groen. Open source (MIT-licentie, zie `LICENSE` in de map erboven).
 
 Cel is een onafhankelijk project en is niet verbonden aan Microsoft. Excel is een merk van Microsoft Corporation; .xlsx is een open standaard (ECMA-376 / ISO 29500).
 
@@ -10,15 +10,12 @@ Geen account, geen naam of andere gegevens invullen: alles blijft op je eigen co
 
 ## Starten
 
-- **Als programma (aanbevolen):** dubbelklik op **Cel** op het bureaublad of zoek "Cel" in het Startmenu. Cel opent in een eigen venster zonder adresbalk; de server start onzichtbaar en stopt vanzelf na 30 minuten zonder gebruik. Vastmaken aan de taakbalk: rechtsklik op het Cel-icoon in de taakbalk › *Aan taakbalk vastmaken*.
-  - Snelkoppelingen kwijt? Rechtsklik op `maak-snelkoppelingen.ps1` › *Uitvoeren met PowerShell*.
-  - Het programmabestand zelf is `Cel.vbs`.
-- **In de browser:** dubbelklik op `start-cel.bat` (opent http://localhost:8081; laat het zwarte venster open), of voer `node server.js` uit in deze map.
-- **Zonder server:** dubbelklik op `index.html`.
+Download Cel voor Windows of Linux van de [Releases-pagina](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest). Stap-voor-stap-uitleg per besturingssysteem staat in [INSTALL.md](../INSTALL.md).
 
-Cel gebruikt poort 8081, Inkt poort 8080, dus beide programma's kunnen tegelijk open staan.
+- **Windows:** pak `Cel-…-windows.zip` uit en dubbelklik op `Cel.exe`. Vastmaken aan de taakbalk: rechtsklik op het Cel-icoon in de taakbalk › *Aan taakbalk vastmaken*. Snelkoppelingen op het bureaublad en in het Startmenu: rechtsklik op `maak-snelkoppelingen.ps1` › *Uitvoeren met PowerShell*.
+- **Linux:** installeer het `.deb`-bestand (Ubuntu, Debian, Mint) of het `.rpm`-bestand (Fedora, openSUSE), of start het `.AppImage`-bestand (Arch en andere). Cel staat daarna in je programmamenu.
 
-Werkmappen worden automatisch in de browser opgeslagen; raakt die opslag vol, dan bewaart Cel de werkmap in een grotere reserve-opslag van de browser (IndexedDB), zodat er niets verloren gaat. Sla belangrijke werkmappen ook op als bestand via **Bestand › Opslaan als**.
+Werkmappen worden automatisch in het programma opgeslagen. Sla belangrijke werkmappen ook op als bestand via **Bestand › Opslaan als**.
 
 ## Wat zit erin
 
@@ -59,7 +56,7 @@ Cel opent met een startscherm (zoals bekende kantoorprogramma's): links Start, N
 Rechtsboven staat de knop **Delen** (ook via Alt+S), met dezelfde keuzes als in bekende kantoorprogramma's:
 
 - **Delen via koppeling** — maak een koppeling zoals `http://192.168.1.10:8081/?deel=abc123`. Kies vooraf *Iedereen met de koppeling kan bewerken* of *… weergeven* en eventueel een code. Iedereen op hetzelfde (wifi-)netwerk opent de koppeling in een browser en ziet de werkmap; bij *bewerken* komen wijzigingen van beide kanten binnen enkele seconden bij elkaar binnen; wijzigen twee mensen tegelijk, dan worden de wijzigingen per cel samengevoegd. De koppeling werkt zolang Cel op jouw computer openstaat (via `start-cel.bat`, `Cel.vbs` of `Cel.exe`). Windows vraagt de eerste keer of Cel netwerktoegang mag hebben: kies *Toestaan*. Gedeelde werkmappen staan in de map `gedeeld` (bij `Cel.exe` in `%LocalAppData%\Cel\gedeeld`).
-- **Een kopie verzenden** — als .xlsx of PDF. In `Cel.exe` opent het Windows-deelvenster (e-mail, WhatsApp, Nabij delen …); in de browser wordt het bestand opgeslagen en opent je e-mailprogramma.
+- **Een kopie verzenden** — als .xlsx of PDF. In `Cel.exe` opent het Windows-deelvenster (e-mail, WhatsApp, Nabij delen …); op Linux wordt het bestand opgeslagen en opent je e-mailprogramma.
 - **Toegang beheren** — alle koppelingen die je vanaf deze computer deelt: bewerken of weergeven wisselen, koppeling kopiëren, stoppen met delen.
 
 Wie een koppeling heeft geopend, vindt de werkmap terug op het startscherm onder **Gedeeld met mij**. Er is geen account nodig en er gaat niets naar internet: delen werkt alleen binnen je eigen netwerk.

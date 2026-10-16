@@ -9,3 +9,8 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+# Linux-programma bouwen (desktop/)
+desktop/node_modules/
+desktop/stage/
+desktop/dist/

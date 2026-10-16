@@ -2,97 +2,108 @@
 
 *Nederlandse uitleg staat onderaan.*
 
-Kantoor Space contains two apps: **Inkt** (word processor) and **Cel** (spreadsheet). You can use them as a Windows program, in your browser, or without installing anything.
+Kantoor Space has two separate programs: **Inkt** (word processor) and **Cel** (spreadsheet). Install one or both. All downloads are on the **[Releases page](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest)**.
 
-## Step 1: download
+- [Windows 10 / 11](#windows-10--11)
+- [Ubuntu, Debian, Linux Mint](#ubuntu-debian-linux-mint)
+- [Fedora, openSUSE](#fedora-opensuse)
+- [Arch, Manjaro, EndeavourOS and other Linux](#arch-manjaro-endeavouros-and-other-linux)
+- [Problems?](#problems)
 
-1. Go to https://github.com/jeltevanschelven8-afk/kantoor-space
-2. Click the green **Code** button › **Download ZIP**.
-3. Right-click the downloaded ZIP › **Properties**. If there is an **Unblock** checkbox at the bottom, tick it and click **OK**.
-4. Right-click the ZIP › **Extract All…** and choose a folder you will keep, for example `Documents\Kantoor Space`.
+Do you have an ARM computer (Raspberry Pi 4/5, an ARM laptop)? Use the files with `arm64` in the name instead of `x64`.
 
-## Step 2: choose how to start
+## Windows 10 / 11
 
-### A. As a Windows program (recommended)
+1. Download `Inkt-…-windows.zip` and/or `Cel-…-windows.zip`.
+2. Right-click the ZIP › **Properties**. If there is an **Unblock** checkbox at the bottom, tick it and click **OK**.
+3. Right-click the ZIP › **Extract All…** and choose a folder you will keep, for example `Documents\Kantoor Space`.
+4. Open the extracted folder and double-click **`Inkt.exe`** or **`Cel.exe`**.
+5. Optional: for shortcuts on your desktop and in the Start menu, right-click **`maak-snelkoppelingen.ps1`** in the same folder › **Run with PowerShell**.
 
-1. Open the extracted folder.
-2. Double-click **`Inkt.exe`** for the word processor.
-3. Open the **`cel`** folder and double-click **`Cel.exe`** for the spreadsheet.
-4. Optional, for shortcuts on your desktop and in the Start menu: right-click **`maak-snelkoppelingen.ps1`** › **Run with PowerShell**. Do the same with **`cel\maak-snelkoppelingen.ps1`**.
+**Windows 10:** if the program doesn't start, install the free [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/). Windows 11 already has it.
 
-**Requirements:** Windows 10 or 11. The programs use Microsoft Edge WebView2, which is built into Windows 11. On Windows 10, install the free [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) if a program doesn't start.
+**"Windows protected your PC"?** The programs are not signed with a paid certificate. Click **More info** › **Run anyway**.
 
-**Does Windows say "Windows protected your PC"?** The programs are not signed with a paid certificate. Click **More info** › **Run anyway**. If Smart App Control blocks them completely, use option B.
+## Ubuntu, Debian, Linux Mint
 
-### B. In your browser
-
-1. Install [Node.js](https://nodejs.org) (choose the LTS version).
-2. Inkt: double-click **`start-inkt.bat`**. Your browser opens http://localhost:8080.
-3. Cel: double-click **`cel\start-cel.bat`**. Your browser opens http://localhost:8081.
-4. Keep the black window open while you work. Close it to stop the app.
-
-### Linux (Ubuntu, Debian, Arch, Fedora …) and macOS
-
-The Windows programs (`.exe`) don't run on Linux, but both apps work fully in your browser.
-
-1. Install Node.js:
-   - Ubuntu / Debian: `sudo apt install nodejs`
-   - Arch: `sudo pacman -S nodejs`
-   - Fedora: `sudo dnf install nodejs`
-   - macOS: download it from [nodejs.org](https://nodejs.org)
-2. Download the project, with the ZIP (see step 1) or with git:
+1. Download `Inkt-…-linux-x64.deb` and/or `Cel-…-linux-x64.deb`.
+2. Double-click the file and choose **Install**, or install it from a terminal:
    ```bash
-   git clone https://github.com/jeltevanschelven8-afk/kantoor-space.git
-   cd kantoor-space
+   sudo apt install ./Inkt-*-linux-x64.deb
+   sudo apt install ./Cel-*-linux-x64.deb
    ```
-3. Start an app from a terminal in that folder:
+3. Start **Inkt** or **Cel** from your applications menu.
+
+To remove: `sudo apt remove inkt` or `sudo apt remove cel`.
+
+## Fedora, openSUSE
+
+1. Download `Inkt-…-linux-x64.rpm` and/or `Cel-…-linux-x64.rpm`.
+2. Install it:
    ```bash
-   ./start-inkt.sh        # Inkt, opens http://localhost:8080
-   ./cel/start-cel.sh     # Cel, opens http://localhost:8081
+   sudo dnf install ./Inkt-*-linux-x64.rpm        # Fedora
+   sudo zypper install ./Inkt-*-linux-x64.rpm     # openSUSE
    ```
-   If you downloaded the ZIP, first make the scripts executable: `chmod +x start-inkt.sh cel/start-cel.sh`.
-4. Keep the terminal open while you work; press Ctrl+C to stop.
+3. Start **Inkt** or **Cel** from your applications menu.
 
-Any modern browser works: Firefox, Chromium, Chrome, Brave, Opera or Edge.
+## Arch, Manjaro, EndeavourOS and other Linux
 
-### C. Without installing anything
+**AppImage** (one file, nothing to install):
 
-Double-click **`index.html`** (Inkt) or **`cel\index.html`** (Cel). Everything works, except sharing a link with others, which needs option A or B.
+1. Download `Inkt-…-linux-x64.AppImage` and/or `Cel-…-linux-x64.AppImage`.
+2. Make it executable and start it:
+   ```bash
+   chmod +x Inkt-*-linux-x64.AppImage
+   ./Inkt-*-linux-x64.AppImage
+   ```
+   Or right-click the file › **Properties** › **Allow executing file as program**, then double-click it.
+3. AppImages need FUSE 2. If it doesn't start, install it: `sudo pacman -S fuse2` (Arch), `sudo apt install libfuse2t64` (Ubuntu 24.04) or `sudo apt install libfuse2` (Ubuntu 22.04).
 
-## Step 3: first use
+**tar.gz** (no FUSE needed):
+
+```bash
+tar xzf Inkt-*-linux-x64.tar.gz
+./Inkt-*-linux-x64/inkt
+```
+
+## First use
 
 - The interface is in English. To switch to Dutch: **File › Options › Language**.
-- Your documents are saved automatically on your own computer. Use **File › Save As** to save a copy as .docx, .xlsx or PDF.
-- To share: click **Share** at the top right. People on the same Wi-Fi network can open the link in their browser while the app is open on your computer.
+- Your documents are saved automatically inside the program. Use **File › Save As** to save a copy as .docx, .xlsx or PDF.
+- To share: click **Share** at the top right. People on the same Wi-Fi network can open the link while the program is open on your computer. The first time, your computer may ask whether the program may use the network: choose **Allow**.
 
 ## Updating
 
-Download the new ZIP and extract it over the old folder. Your documents are not stored in this folder, so they stay where they are.
+Download the new version from the Releases page and install it the same way. Your documents are kept: they are not stored in the program folder.
 
 ## Problems?
 
 | Problem | Solution |
 |---|---|
-| `Inkt.exe` or `Cel.exe` doesn't start | Install the WebView2 Runtime (see above), or use option B |
-| Windows blocks the program | **More info** › **Run anyway**, or unblock the ZIP before extracting (step 1.3) |
-| `start-inkt.bat` says Node.js was not found | Install Node.js and try again |
-| "Port 8080 is already in use" | Inkt is already running. Open http://localhost:8080 |
-| Icons look like words | Press Ctrl+F5 to reload |
-| Linux: `Permission denied` when starting the `.sh` script | Run `chmod +x start-inkt.sh cel/start-cel.sh`, or start it with `bash start-inkt.sh` |
-| Linux: the browser doesn't open by itself | Open http://localhost:8080 (Inkt) or http://localhost:8081 (Cel) yourself |
+| Windows: `Inkt.exe` or `Cel.exe` doesn't start | Install the WebView2 Runtime (see above) |
+| Windows blocks the program | **More info** › **Run anyway**, or unblock the ZIP before extracting |
+| Linux: AppImage doesn't start | Install FUSE 2 (see above), or use the .deb, .rpm or .tar.gz |
+| Linux: `Permission denied` | Run `chmod +x` on the AppImage first |
+| Icons look like words | Close the program and start it again |
 
 ---
 
 ## Nederlands
 
-1. Ga naar https://github.com/jeltevanschelven8-afk/kantoor-space › groene knop **Code** › **Download ZIP**.
+Alle downloads staan op de **[Releases-pagina](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest)**. Inkt (tekstverwerker) en Cel (rekenblad) zijn aparte downloads.
+
+**Windows 10 / 11**
+1. Download `Inkt-…-windows.zip` en/of `Cel-…-windows.zip`.
 2. Rechtsklik op het ZIP-bestand › **Eigenschappen** › vink **Blokkering opheffen** aan (als dat er staat) › **OK**.
 3. Rechtsklik › **Alles uitpakken…** naar een map die je bewaart.
-4. Dubbelklik op **`Inkt.exe`** (tekstverwerker) of **`cel\Cel.exe`** (rekenblad).
-5. Snelkoppelingen: rechtsklik op **`maak-snelkoppelingen.ps1`** › **Uitvoeren met PowerShell** (ook in de map `cel`).
+4. Dubbelklik op **`Inkt.exe`** of **`Cel.exe`**.
+5. Snelkoppelingen: rechtsklik op **`maak-snelkoppelingen.ps1`** › **Uitvoeren met PowerShell**.
 6. Zegt Windows "Uw pc is beschermd"? Klik op **Meer info** › **Toch uitvoeren**.
-7. Nederlandse menu's: **File › Options › Language › Nederlands**.
 
-Werkt het programma niet, installeer dan [Node.js](https://nodejs.org) en dubbelklik op `start-inkt.bat` of `cel\start-cel.bat`.
+**Linux**
+- Ubuntu, Debian, Linux Mint: download het `.deb`-bestand en dubbelklik erop, of `sudo apt install ./Inkt-*-linux-x64.deb`.
+- Fedora, openSUSE: download het `.rpm`-bestand en installeer het met `sudo dnf install ./Inkt-*-linux-x64.rpm`.
+- Arch en andere: download het `.AppImage`-bestand, maak het uitvoerbaar met `chmod +x` en start het. Werkt het niet, installeer dan `fuse2`, of gebruik het `.tar.gz`-bestand.
+- Heb je een ARM-computer (Raspberry Pi), neem dan de bestanden met `arm64` in de naam.
 
-**Linux (Ubuntu, Arch …):** de .exe-programma's werken daar niet, maar de apps wel in de browser. Installeer Node.js (`sudo apt install nodejs` of `sudo pacman -S nodejs`) en start in een terminal `./start-inkt.sh` of `./cel/start-cel.sh`.
+Nederlandse menu's: **File › Options › Language › Nederlands**.

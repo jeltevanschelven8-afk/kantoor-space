@@ -4,7 +4,7 @@
 
 **Made by JJ van Schelven.** Version 2.0 · open source.
 
-A spreadsheet in the browser with the familiar layout of a ribbon with tabs. Same style as Inkt (the word processor in the folder above), but in spreadsheet green. Open source (MIT license, see `LICENSE` in the folder above).
+A spreadsheet program for Windows and Linux with the familiar layout of a ribbon with tabs. Same style as Inkt (the word processor in the folder above), but in spreadsheet green. Open source (MIT license, see `LICENSE` in the folder above).
 
 Cel is an independent project and is not affiliated with Microsoft. Excel is a trademark of Microsoft Corporation; .xlsx is an open standard (ECMA-376 / ISO 29500).
 
@@ -26,14 +26,12 @@ Workbooks are stored in a language-independent form, so a workbook made in Dutch
 
 ## Getting started
 
-- **As a program (recommended):** double-click **Cel** on the desktop or search for "Cel" in the Start menu. Cel opens in its own window without an address bar. Pin it to the taskbar: right-click the Cel icon in the taskbar › *Pin to taskbar*.
-  - Lost the shortcuts? Right-click `maak-snelkoppelingen.ps1` › *Run with PowerShell*.
-- **In the browser:** double-click `start-cel.bat` (opens http://localhost:8081; keep the black window open), or run `node server.js` in this folder.
-- **Without a server:** double-click `index.html`.
+Download Cel for Windows or Linux from the [Releases page](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest). Step-by-step instructions for every operating system are in [INSTALL.md](../INSTALL.md).
 
-Cel uses port 8081, Inkt port 8080, so both programs can be open at the same time.
+- **Windows:** extract `Cel-…-windows.zip` and double-click `Cel.exe`. Pin it to the taskbar: right-click the Cel icon in the taskbar › *Pin to taskbar*. For shortcuts on the desktop and in the Start menu: right-click `maak-snelkoppelingen.ps1` › *Run with PowerShell*.
+- **Linux:** install the `.deb` (Ubuntu, Debian, Mint) or `.rpm` (Fedora, openSUSE), or start the `.AppImage` (Arch and others). Cel then appears in your applications menu.
 
-Workbooks are saved automatically in the browser; if that storage fills up, Cel keeps the workbook in the browser's larger backup storage (IndexedDB), so nothing is lost. Also save important workbooks as a file via **File › Save As**.
+Documents are saved automatically inside the program. Also save important workbooks as a file via **File › Save As**.
 
 ## What's inside
 
@@ -69,7 +67,7 @@ Cel opens with a start screen (like familiar office programs): Home, New and Ope
 At the top right is the **Share** button (also Alt+S), with the same choices as in familiar office programs:
 
 - **Share a link** — creates a link such as `http://192.168.1.10:8081/?deel=abc123`. Choose *Anyone with the link can edit* or *… view* beforehand and optionally a code. Anyone on the same (Wi-Fi) network opens the link in a browser and sees the workbook; with *edit*, changes from both sides arrive within a few seconds; when two people edit at the same time, the changes are merged cell by cell. The link works as long as Cel is open on your computer (via `start-cel.bat`, `Cel.vbs` or `Cel.exe`). The first time, Windows asks whether Cel may have network access: choose *Allow*. Shared workbooks are stored in the `gedeeld` folder (with `Cel.exe` in `%LocalAppData%\Cel\gedeeld`).
-- **Send a copy** — as .xlsx or PDF. In `Cel.exe` the Windows share panel opens (email, WhatsApp, Nearby Sharing …); in the browser the file is saved and your email program opens.
+- **Send a copy** — as .xlsx or PDF. In `Cel.exe` the Windows share panel opens (email, WhatsApp, Nearby Sharing …); on Linux the file is saved and your email program opens.
 - **Manage access** — all links you share from this computer: switch between edit and view, copy the link, stop sharing.
 
 Whoever has opened a link finds the workbook on the start screen under **Shared with me**. No account is needed and nothing goes to the internet: sharing only works within your own network.

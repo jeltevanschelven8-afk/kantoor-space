@@ -1,0 +1,79 @@
+# Kantoor Space — bouwt de downloads voor Inkt en Cel en zet ze onder Releases.
+# Start automatisch bij een nieuwe versie-tag (bijv. v1.0.0), of met de hand via Actions › Build programs › Run workflow
+# (dan alleen bouwen, zonder release).
+name: Build programs
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux (AppImage, deb, rpm, tar.gz)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Tools for .rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: desktop
+        run: npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
+      - name: Build Inkt and Cel
+        working-directory: desktop
+        run: |
+          npm ci
+          node build.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.rpm
+            desktop/dist/*.tar.gz
+
+  windows:
+    name: Windows (zip)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack Inkt and Cel
+        run: |
+          V="${GITHUB_REF_NAME#v}"; case "$V" in [0-9]*) ;; *) V="dev";; esac
+          mkdir -p out/Inkt out/Cel
+          cp -r index.html manifest.webmanifest sw.js Inkt.exe Microsoft.Web.WebView2.*.dll runtimes js css fonts vendor icons \
+                maak-snelkoppelingen.ps1 LICENSE DERDEN-LICENTIES.md INSTALL.md INKT.md LEESMIJ.md out/Inkt/
+          (cd cel && cp -r index.html manifest.webmanifest sw.js Cel.exe Microsoft.Web.WebView2.*.dll runtimes js css fonts vendor icons \
+                maak-snelkoppelingen.ps1 README.md LEESMIJ.md ../out/Cel/)
+          cp LICENSE DERDEN-LICENTIES.md INSTALL.md out/Cel/
+          (cd out && zip -qr "Inkt-$V-windows.zip" Inkt && zip -qr "Cel-$V-windows.zip" Cel)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*.zip
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la files
+          gh release create "$GITHUB_REF_NAME" files/* --title "Kantoor Space $GITHUB_REF_NAME" --notes-file .github/release-notes.md

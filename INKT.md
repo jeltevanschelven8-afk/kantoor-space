@@ -14,15 +14,12 @@ The interface is in **English** by default. Switch to Dutch (Nederlands) via **F
 
 ## Getting started
 
-- **As a program (recommended):** double-click **Inkt** on the desktop or search for "Inkt" in the Start menu (this runs `Inkt.exe`). Inkt is a real Windows program: no browser, no address bar, no account and no server needed. Pin it to the taskbar: right-click the Inkt icon in the taskbar › *Pin to taskbar*.
-  - Lost the shortcuts? Right-click `maak-snelkoppelingen.ps1` › *Run with PowerShell*.
-  - The program shows the app with the WebView2 component built into Windows. Source in `programma/Launcher.cs`; rebuild with `programma/bouw.ps1`. The same program file is used as `cel/Cel.exe`.
-- **In the browser:** double-click `start-inkt.bat` (opens http://localhost:8080; keep the black window open), or run `node server.js`.
-- **Without a server:** double-click `index.html`.
+Download Inkt for Windows or Linux from the [Releases page](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest). Step-by-step instructions for every operating system are in [INSTALL.md](INSTALL.md).
 
-Documents are saved automatically (in the program under `%LOCALAPPDATA%\Inkt`). The program, the browser version and `index.html` each have their own storage. Also save important documents as a file via **File › Save As**.
+- **Windows:** extract `Inkt-…-windows.zip` and double-click `Inkt.exe`. Pin it to the taskbar: right-click the Inkt icon in the taskbar › *Pin to taskbar*. For shortcuts on the desktop and in the Start menu: right-click `maak-snelkoppelingen.ps1` › *Run with PowerShell*.
+- **Linux:** install the `.deb` (Ubuntu, Debian, Mint) or `.rpm` (Fedora, openSUSE), or start the `.AppImage` (Arch and others). Inkt then appears in your applications menu.
 
-**Smart App Control:** Windows may block new, unsigned programs. If `Inkt.exe` is blocked after rebuilding, use `start-inkt.bat`.
+Documents are saved automatically inside the program. Also save important documents as a file via **File › Save As**.
 
 ## What's inside
 

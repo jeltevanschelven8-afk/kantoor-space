@@ -6,15 +6,12 @@ Een tekstverwerker met alles wat je van een moderne tekstverwerker verwacht, en 
 
 ## Starten
 
-- **Als programma (aanbevolen):** dubbelklik op **Inkt** op het bureaublad of zoek "Inkt" in het Startmenu (dat start `Inkt.exe`). Inkt is een echt Windows-programma: geen browser, geen adresbalk, geen account en geen server nodig. Vastmaken aan de taakbalk: rechtsklik op het Inkt-icoon in de taakbalk › *Aan taakbalk vastmaken*.
-  - Snelkoppelingen kwijt? Rechtsklik op `maak-snelkoppelingen.ps1` › *Uitvoeren met PowerShell*.
-  - Het programma toont de app met de WebView2-component die in Windows zit (dezelfde techniek als Teams en de nieuwe Outlook). De broncode staat in `programma/Launcher.cs`; opnieuw bouwen met `programma/bouw.ps1`. Hetzelfde programmabestand wordt ook gebruikt als `cel/Cel.exe`.
-- **In de browser:** dubbelklik op `start-inkt.bat` (opent http://localhost:8080; laat het zwarte venster open), of voer `node server.js` uit.
-- **Zonder server:** dubbelklik op `index.html`.
+Download Inkt voor Windows of Linux van de [Releases-pagina](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest). Stap-voor-stap-uitleg per besturingssysteem staat in [INSTALL.md](INSTALL.md).
 
-Documenten worden automatisch opgeslagen (in het programma onder `%LOCALAPPDATA%\Inkt`). Het programma, de browserversie en `index.html` hebben elk hun eigen opslag. Sla belangrijke documenten ook op als bestand via **Bestand › Opslaan als**.
+- **Windows:** pak `Inkt-…-windows.zip` uit en dubbelklik op `Inkt.exe`. Vastmaken aan de taakbalk: rechtsklik op het Inkt-icoon in de taakbalk › *Aan taakbalk vastmaken*. Snelkoppelingen op het bureaublad en in het Startmenu: rechtsklik op `maak-snelkoppelingen.ps1` › *Uitvoeren met PowerShell*.
+- **Linux:** installeer het `.deb`-bestand (Ubuntu, Debian, Mint) of het `.rpm`-bestand (Fedora, openSUSE), of start het `.AppImage`-bestand (Arch en andere). Inkt staat daarna in je programmamenu.
 
-**Smart App Control:** Windows kan nieuwe, niet-ondertekende programma's blokkeren. Wordt `Inkt.exe` na opnieuw bouwen geblokkeerd, gebruik dan `start-inkt.bat`.
+Documenten worden automatisch in het programma opgeslagen. Sla belangrijke documenten ook op als bestand via **Bestand › Opslaan als**.
 
 ## Wat zit erin
 

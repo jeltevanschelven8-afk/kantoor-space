@@ -15,8 +15,10 @@ const DEFAULT_PORT = 8081;
 const root = __dirname;
 const args = process.argv.slice(2);
 const quiet = args.includes('--stil');
-const port = +process.env.PORT || +args.find((a) => /^\d+$/.test(a)) || DEFAULT_PORT;
-const shareDir = path.join(root, 'gedeeld');
+let port = +process.env.PORT || +args.find((a) => /^\d+$/.test(a)) || DEFAULT_PORT;
+// In het Linux-programma (Electron) staat de app in een alleen-lezen map: gedeelde documenten gaan dan naar KANTOOR_SHARE_DIR
+const embedded = !!process.env.KANTOOR_EMBEDDED;
+const shareDir = process.env.KANTOOR_SHARE_DIR || path.join(root, 'gedeeld');
 const types = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.md': 'text/markdown; charset=utf-8',
@@ -128,13 +130,18 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+let tries = 0;
 server.on('error', (e) => {
+  // in het programma: bij een bezette poort de volgende proberen (8080 → 8082 → …) in plaats van te stoppen
+  if (e.code === 'EADDRINUSE' && embedded && tries++ < 20) { port += 2; server.listen(port, '0.0.0.0'); return; }
   if (e.code === 'EADDRINUSE') { console.log(`Port ${port} is already in use — ${NAME} is probably already running at http://localhost:${port}`); process.exit(0); }
   throw e;
 });
 // 0.0.0.0: ook bereikbaar voor anderen op hetzelfde netwerk (nodig voor Delen). Windows vraagt de eerste keer of dat mag.
-server.listen(port, '0.0.0.0', () => {
+server.on('listening', () => {
   console.log(`${NAME} (made by JJ van Schelven) is running at http://localhost:${port}  (stop: Ctrl+C)`);
   console.log(`Share on this network via http://${lanIp()}:${port}`);
   resetIdle();
+  if (embedded) process.emit('kantoor-server', port);
 });
+server.listen(port, '0.0.0.0');
