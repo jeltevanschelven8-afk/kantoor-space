@@ -22,3 +22,7 @@ Lettertypen als Aptos, Calibri en Segoe UI worden niet meegeleverd. Inkt en Cel 
 ## Linux-programma (Electron)
 
 De Linux-versies van Inkt en Cel (map `desktop/`, downloads op de Releases-pagina) bevatten **Electron** (MIT-licentie, © GitHub Inc. en de Electron-bijdragers, https://www.electronjs.org) met daarin **Chromium** (BSD-licentie en andere open-sourcelicenties) en **Node.js** (MIT-licentie). De volledige licentieteksten zitten in elk Linux-pakket (`LICENSE.electron.txt` en `LICENSES.chromium.html`). Gebouwd met **electron-builder** (MIT-licentie).
+
+## Carlito (Cel)
+
+Cel levert het lettertype **Carlito** mee (`cel/fonts/carlito-*.woff2`), © 2013 The Carlito Project Authors, onder de **SIL Open Font License 1.1** (volledige tekst: `cel/fonts/Carlito-OFL.txt`). Carlito heeft dezelfde tekenbreedtes als Calibri en wordt gebruikt op computers waar Aptos en Calibri niet aanwezig zijn, zoals Linux.

@@ -112,10 +112,25 @@ const stage = (id) => {
           syncDesktopName: true,
           desktop: { entry: { Name: a.name, Comment: a.desc, StartupWMClass: a.name } },
         },
-        deb: { packageCategory: 'editors' },
-        rpm: { fpm: ['--rpm-rpmbuild-define=_build_id_links none'] },
+        // Alles wat Electron nodig heeft, ook op een kale installatie (Ubuntu 24.04+ gebruikt de *t64-namen)
+        deb: {
+          packageCategory: 'editors',
+          depends: ['libgtk-3-0 | libgtk-3-0t64', 'libnotify4', 'libnss3', 'libxss1', 'libxtst6', 'xdg-utils', 'libatspi2.0-0 | libatspi2.0-0t64',
+            'libuuid1', 'libsecret-1-0', 'libasound2 | libasound2t64', 'libgbm1', 'libdrm2'],
+        },
+        rpm: {
+          fpm: ['--rpm-rpmbuild-define=_build_id_links none'],
+          depends: ['gtk3', 'libnotify', 'nss', 'libXScrnSaver', '(libXtst or libXtst6)', 'xdg-utils', 'at-spi2-core', '(libuuid or libuuid1)',
+            '(alsa-lib or libasound2)', '(mesa-libgbm or libgbm1)', '(libdrm or libdrm2)'],
+        },
       },
     });
+  }
+  // Overal dezelfde namen voor de processortypen: x64 en arm64 (deb/rpm/AppImage gebruiken anders amd64, x86_64, aarch64)
+  const dist = path.join(__dirname, 'dist');
+  if (fs.existsSync(dist)) for (const f of fs.readdirSync(dist)) {
+    const n = f.replace(/-linux-(amd64|x86_64)\./, '-linux-x64.').replace(/-linux-aarch64\./, '-linux-arm64.');
+    if (n !== f) fs.renameSync(path.join(dist, f), path.join(dist, n));
   }
   console.log('\nKlaar: zie desktop/dist/');
 })().catch((e) => { console.error(e); process.exit(1); });

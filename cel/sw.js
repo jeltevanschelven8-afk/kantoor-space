@@ -1,8 +1,8 @@
 /* Cel (gemaakt door JJ van Schelven) — service worker: bewaart de app lokaal zodat hij ook start als de server uit staat of er geen internet is. */
-const VERSION = 'cel-v8';
+const VERSION = 'cel-v9';
 const APP = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css', 'css/sheet.css',
-  'js/core.js', 'js/numfmt.js', 'js/formula.js', 'js/functions.js', 'js/functions2.js', 'js/extra.js', 'js/delen.js', 'js/start-screen.js', 'js/opslag.js', 'js/lang/en.js', 'js/lang/en-cel.js', 'js/lang/en-cel-2.js', 'js/lang/en-cel-fn.js', 'js/lang/en-cel-tpl.js', 'js/i18n.js', 'vendor/jszip.min.js', 'fonts/fonts.css', 'fonts/material-symbols-outlined.woff2', 'js/ui.js', 'js/grid.js', 'js/edit.js',
+  'js/core.js', 'js/numfmt.js', 'js/formula.js', 'js/functions.js', 'js/functions2.js', 'js/extra.js', 'js/delen.js', 'js/start-screen.js', 'js/opslag.js', 'js/lang/en.js', 'js/lang/en-cel.js', 'js/lang/en-cel-2.js', 'js/lang/en-cel-fn.js', 'js/lang/en-cel-tpl.js', 'js/i18n.js', 'vendor/jszip.min.js', 'fonts/fonts.css', 'fonts/material-symbols-outlined.woff2', 'fonts/carlito-regular.woff2', 'fonts/carlito-bold.woff2', 'fonts/carlito-italic.woff2', 'fonts/carlito-bolditalic.woff2', 'js/ui.js', 'js/grid.js', 'js/edit.js',
   'js/format.js', 'js/data.js', 'js/objects.js', 'js/print.js', 'js/xlsx.js', 'js/file.js', 'js/main.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/cel.ico',
 ];

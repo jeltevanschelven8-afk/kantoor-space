@@ -1,3 +1,10 @@
 /* Cel — pictogramlettertype van de interface, lokaal meegeleverd (werkt zonder internet).
    Material Symbols Outlined (Apache 2.0): zie ../DERDEN-LICENTIES.md in de map erboven. */
 @font-face { font-family: 'Material Symbols Outlined'; font-style: normal; font-weight: 100 700; font-display: block; src: url(material-symbols-outlined.woff2) format('woff2'); }
+
+/* Carlito (SIL Open Font License 1.1, zie Carlito-OFL.txt): zelfde breedtes als Calibri.
+   Reserve voor het celllettertype op computers zonder Aptos/Calibri (bijv. Linux); een geïnstalleerde Carlito gaat voor. */
+@font-face { font-family: 'Carlito'; font-style: normal; font-weight: 400; font-display: swap; src: local('Carlito'), url(carlito-regular.woff2) format('woff2'); }
+@font-face { font-family: 'Carlito'; font-style: normal; font-weight: 700; font-display: swap; src: local('Carlito Bold'), local('Carlito-Bold'), url(carlito-bold.woff2) format('woff2'); }
+@font-face { font-family: 'Carlito'; font-style: italic; font-weight: 400; font-display: swap; src: local('Carlito Italic'), local('Carlito-Italic'), url(carlito-italic.woff2) format('woff2'); }
+@font-face { font-family: 'Carlito'; font-style: italic; font-weight: 700; font-display: swap; src: local('Carlito Bold Italic'), local('Carlito-BoldItalic'), url(carlito-bolditalic.woff2) format('woff2'); }

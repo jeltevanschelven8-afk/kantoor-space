@@ -229,13 +229,25 @@
         if (canonFirst) {
           const f = F.shift(canonFirst, r - ed.r, c - ed.c);
           res = App.setCellFromText(target, r, c, '=' + f, { canon: true });
-        } else res = App.setCellFromText(target, r, c, text);
+        } else { res = App.setCellFromText(target, r, c, text); autoColWidth(target, r, c); }
         autoRowHeight(target, r);
       });
     });
     finishEdit();
     App.focusGrid();
     return res.ok;
+  };
+
+  /* Kolom automatisch breder maken (zoals Excel): een ingetypte datum of opgemaakt getal dat niet past in een kolom
+     met de standaardbreedte zou anders als #### verschijnen. Kolommen met een zelf gekozen breedte blijven zoals ze zijn. */
+  const autoColWidth = (sh, r, c) => {
+    if (sh.colW[c] !== undefined || App.mergeAt(sh, r, c)) return;
+    const cell = App.getCell(sh, r, c);
+    if (!cell || cell.f || typeof cell.v !== 'number') return;
+    const st = App.styleAt(sh, r, c, cell);
+    if (!st.nf || st.nf === 'General' || st.wrap) return;
+    const w = Math.ceil(App.measureText(App.fontOf(st), NF.format(cell.v, st.nf).text) + 10 + (st.ind || 0) * 9);
+    if (w > App.colW(c, sh)) { sh.colW[c] = Math.min(1790, w); App.invalidateDims(sh); }
   };
 
   /* Rijhoogte automatisch aanpassen (bij terugloop of grote letters) */

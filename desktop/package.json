@@ -1,7 +1,7 @@
 {
   "name": "kantoor-space-desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Builds Inkt and Cel as Linux desktop programs (Electron). Made by JJ van Schelven.",
   "license": "MIT",
   "scripts": {

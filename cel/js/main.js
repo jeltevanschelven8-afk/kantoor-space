@@ -26,6 +26,8 @@
 
   // Opslaan bij afsluiten (en waarschuwen als dat niet lukt): zie opslag.js
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => App.scheduleRender());
+  // Het rasterlettertype wordt op een canvas getekend; de meegeleverde reserve (Carlito, voor Linux) daarom zelf laden en daarna opnieuw tekenen
+  if (document.fonts && document.fonts.load) Promise.all(['', 'bold ', 'italic ', 'italic bold '].map((s) => document.fonts.load(s + '15px Carlito').catch(() => null))).then(() => App.scheduleRender());
   App.scheduleState();
   App.focusGrid();
   // Als programma (via localhost): app lokaal bewaren zodat hij ook zonder server en internet start
