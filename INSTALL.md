@@ -31,7 +31,29 @@ Kantoor Space contains two apps: **Inkt** (word processor) and **Cel** (spreadsh
 3. Cel: double-click **`cel\start-cel.bat`**. Your browser opens http://localhost:8081.
 4. Keep the black window open while you work. Close it to stop the app.
 
-On macOS or Linux, open a terminal in the folder and run `node server.js` (for Cel: in the `cel` folder), then open the address above.
+### Linux (Ubuntu, Debian, Arch, Fedora …) and macOS
+
+The Windows programs (`.exe`) don't run on Linux, but both apps work fully in your browser.
+
+1. Install Node.js:
+   - Ubuntu / Debian: `sudo apt install nodejs`
+   - Arch: `sudo pacman -S nodejs`
+   - Fedora: `sudo dnf install nodejs`
+   - macOS: download it from [nodejs.org](https://nodejs.org)
+2. Download the project, with the ZIP (see step 1) or with git:
+   ```bash
+   git clone https://github.com/jeltevanschelven8-afk/kantoor-space.git
+   cd kantoor-space
+   ```
+3. Start an app from a terminal in that folder:
+   ```bash
+   ./start-inkt.sh        # Inkt, opens http://localhost:8080
+   ./cel/start-cel.sh     # Cel, opens http://localhost:8081
+   ```
+   If you downloaded the ZIP, first make the scripts executable: `chmod +x start-inkt.sh cel/start-cel.sh`.
+4. Keep the terminal open while you work; press Ctrl+C to stop.
+
+Any modern browser works: Firefox, Chromium, Chrome, Brave, Opera or Edge.
 
 ### C. Without installing anything
 
@@ -56,6 +78,8 @@ Download the new ZIP and extract it over the old folder. Your documents are not 
 | `start-inkt.bat` says Node.js was not found | Install Node.js and try again |
 | "Port 8080 is already in use" | Inkt is already running. Open http://localhost:8080 |
 | Icons look like words | Press Ctrl+F5 to reload |
+| Linux: `Permission denied` when starting the `.sh` script | Run `chmod +x start-inkt.sh cel/start-cel.sh`, or start it with `bash start-inkt.sh` |
+| Linux: the browser doesn't open by itself | Open http://localhost:8080 (Inkt) or http://localhost:8081 (Cel) yourself |
 
 ---
 
@@ -70,3 +94,5 @@ Download the new ZIP and extract it over the old folder. Your documents are not 
 7. Nederlandse menu's: **File › Options › Language › Nederlands**.
 
 Werkt het programma niet, installeer dan [Node.js](https://nodejs.org) en dubbelklik op `start-inkt.bat` of `cel\start-cel.bat`.
+
+**Linux (Ubuntu, Arch …):** de .exe-programma's werken daar niet, maar de apps wel in de browser. Installeer Node.js (`sudo apt install nodejs` of `sudo pacman -S nodejs`) en start in een terminal `./start-inkt.sh` of `./cel/start-cel.sh`.

@@ -40,7 +40,9 @@ Both apps are made by **JJ van Schelven**, a 12-year-old developer from the Neth
    - Inkt: double-click `start-inkt.bat`, or run `node server.js` in the main folder. Then open http://localhost:8080
    - Cel: double-click `cel\start-cel.bat`, or run `node server.js` in the `cel` folder. Then open http://localhost:8081
 
-On macOS or Linux, run the `node server.js` commands from a terminal. Keep the window open while you work. Both apps can be open at the same time.
+**Linux (Ubuntu, Arch, Fedora …) and macOS:** the `.exe` programs are Windows-only, but both apps run fully in the browser. Install Node.js (`sudo apt install nodejs` on Ubuntu, `sudo pacman -S nodejs` on Arch) and run `./start-inkt.sh` or `./cel/start-cel.sh` in a terminal. See [INSTALL.md](INSTALL.md#linux-ubuntu-debian-arch-fedora--and-macos).
+
+Keep the window open while you work. Both apps can be open at the same time.
 
 ### Option 3: quick look without installing anything
 
@@ -56,7 +58,7 @@ Download the new ZIP and extract it over the old folder. Your documents are not 
 Kantoor/
 ├── index.html, js/, css/      Inkt (word processor)
 ├── Inkt.exe, Inkt.vbs         Inkt as a Windows program
-├── start-inkt.bat, server.js  Inkt in the browser (with link sharing)
+├── start-inkt.bat/.sh, server.js  Inkt in the browser (Windows/Linux/macOS)
 ├── test/stress.html           Stress tests for Inkt
 ├── cel/                       Cel (spreadsheet), same layout:
 │   ├── index.html, js/, css/

@@ -37,7 +37,7 @@ const lanIp = () => {
   for (const name of Object.keys(all)) for (const a of all[name]) {
     if (a.family !== 'IPv4' || a.internal) continue;
     // echte netwerkkaarten (wifi/ethernet) gaan vóór virtuele (WSL, VirtualBox, Hyper-V)
-    const virt = /wsl|virtual|vethernet|vmware|hyper-v|docker/i.test(name);
+    const virt = /wsl|virtual|vethernet|vmware|hyper-v|docker|virbr|veth|^br-|^tun|^tap|tailscale|zerotier|^zt/i.test(name);   // ook Linux-namen
     if (!best || (best.virt && !virt)) best = { ip: a.address, virt };
   }
   return best ? best.ip : '127.0.0.1';
