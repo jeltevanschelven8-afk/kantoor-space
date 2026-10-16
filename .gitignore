@@ -1,0 +1,11 @@
+# Gedeelde documenten (lokale deelserver)
+gedeeld/
+cel/gedeeld/
+
+# Lokale ontwikkel- en systeembestanden
+.claude/
+Thumbs.db
+desktop.ini
+*.log
+*.tmp
+*.bak

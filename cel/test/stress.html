@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Cel — stresstest</title>
+<style>
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
+  #log { overflow: auto; padding: 12px; border-right: 1px solid #ccc; }
+  iframe { width: 100%; height: 100%; border: 0; }
+  .ok { color: #137333; } .fail { color: #c5221f; font-weight: 600; } .slow { color: #b06000; }
+  h2 { margin: 12px 0 4px; font-size: 14px; }
+  pre { white-space: pre-wrap; margin: 0 0 2px; }
+  #sum { position: sticky; top: 0; background: #fff; padding: 6px 0; border-bottom: 1px solid #ddd; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="log"><div id="sum">Cel wordt geladen…</div></div>
+<iframe id="app" src="../index.html#nostart"></iframe>
+<script src="stress.js"></script>
+</body>
+</html>

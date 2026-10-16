@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkt — tekstverwerker</title>
+<meta name="theme-color" content="#f3f3f3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/inkt.ico">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,700;1,400&family=Poppins:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=Nunito:ital,wght@0,400;0,700;1,400&family=Raleway:ital,wght@0,400;0,700;1,400&family=Fira+Code&family=Caveat&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/document.css">
+<link rel="stylesheet" href="css/extra.css">
+</head>
+<body>
+
+<!-- ================= Titelbalk ================= -->
+<header id="titlebar">
+  <div class="tb-left">
+    <div class="logo" title="Inkt"><span class="i">ink_pen</span></div>
+    <div class="qat">
+      <button class="qb" data-cmd="save" title="Opslaan (Ctrl+S)"><span class="i">save</span></button>
+      <button class="qb" data-cmd="undo" title="Ongedaan maken (Ctrl+Z)"><span class="i">undo</span></button>
+      <button class="qb" data-cmd="redo" title="Opnieuw (Ctrl+Y)"><span class="i">redo</span></button>
+    </div>
+    <div class="doc-name">
+      <input id="doc-title" value="Naamloos document" spellcheck="false" title="Documentnaam">
+      <span id="save-state">Opgeslagen</span>
+    </div>
+  </div>
+  <div class="tb-center">
+    <div id="cmd-search-wrap">
+      <span class="i">search</span>
+      <input id="cmd-search" placeholder="Zoeken (Alt+Q)" autocomplete="off" spellcheck="false">
+      <div id="cmd-results" class="menu" hidden></div>
+    </div>
+  </div>
+  <div class="tb-right">
+  </div>
+</header>
+
+<!-- ================= Tabbladen ================= -->
+<nav id="tabs">
+  <button class="tab file-tab" data-cmd="openBackstage">Bestand</button>
+  <button class="tab active" data-tab="home">Start</button>
+  <button class="tab" data-tab="insert">Invoegen</button>
+  <button class="tab" data-tab="draw">Tekenen</button>
+  <button class="tab" data-tab="design">Ontwerpen</button>
+  <button class="tab" data-tab="layout">Indeling</button>
+  <button class="tab" data-tab="references">Verwijzingen</button>
+  <button class="tab" data-tab="mailings">Verzendlijsten</button>
+  <button class="tab" data-tab="review">Controleren</button>
+  <button class="tab" data-tab="view">Beeld</button>
+  <button class="tab" data-tab="help">Help</button>
+  <button class="tab ctx" data-tab="table" hidden>Tabel</button>
+  <button class="tab ctx" data-tab="picture" hidden>Afbeeldingsopmaak</button>
+  <button class="tab ctx" data-tab="hf" hidden>Koptekst en voettekst</button>
+  <span class="tabs-spacer"></span>
+  <button class="tab-collapse" data-cmd="toggleRibbon" title="Lint samenvouwen (Ctrl+F1)"><span class="i">keyboard_arrow_up</span></button>
+</nav>
+
+<!-- ================= Lint ================= -->
+<section id="ribbon">
+
+  <!-- START -->
+  <div class="panel active" data-panel="home">
+    <div class="grp">
+      <div class="grp-body">
+        <div class="split lg">
+          <button class="rb lg" data-cmd="paste" title="Plakken (Ctrl+V)"><span class="i">content_paste</span><span>Plakken</span></button>
+          <button class="rb arrow" data-menu="m-paste" title="Plakopties"><span class="i">expand_more</span></button>
+        </div>
+        <div class="col">
+          <button class="rb" data-cmd="cut" title="Knippen (Ctrl+X)"><span class="i">content_cut</span></button>
+          <button class="rb" data-cmd="copy" title="Kopiëren (Ctrl+C)"><span class="i">content_copy</span></button>
+          <button class="rb" data-cmd="formatPainter" data-state="painter" title="Opmaak kopiëren/plakken (dubbelklik = vasthouden)"><span class="i">format_paint</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Klembord</div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-body rows">
+        <div class="row">
+          <select id="font-family" class="rsel" data-cmd="fontName" title="Lettertype"></select>
+          <input id="font-size" class="rsel size" list="sizes" data-cmd="fontSize" title="Tekengrootte" value="12">
+          <datalist id="sizes"></datalist>
+          <button class="rb" data-cmd="growFont" title="Tekengrootte vergroten (Ctrl+Shift+>)"><span class="i">text_increase</span></button>
+          <button class="rb" data-cmd="shrinkFont" title="Tekengrootte verkleinen (Ctrl+Shift+<)"><span class="i">text_decrease</span></button>
+          <button class="rb" data-menu="m-case" title="Hoofdlettergebruik wijzigen"><span class="i">match_case</span><span class="i caret">arrow_drop_down</span></button>
+          <button class="rb" data-cmd="clearFormat" title="Alle opmaak wissen"><span class="i">format_clear</span></button>
+        </div>
+        <div class="row">
+          <button class="rb" data-cmd="bold" data-state="bold" title="Vet (Ctrl+B)"><span class="i">format_bold</span></button>
+          <button class="rb" data-cmd="italic" data-state="italic" title="Cursief (Ctrl+I)"><span class="i">format_italic</span></button>
+          <div class="split">
+            <button class="rb" data-cmd="underline" data-state="underline" title="Onderstrepen (Ctrl+U)"><span class="i">format_underlined</span></button>
+            <button class="rb arrow" data-menu="m-underline" title="Onderstrepingsstijl"><span class="i">arrow_drop_down</span></button>
+          </div>
+          <button class="rb" data-cmd="strikeThrough" data-state="strikeThrough" title="Doorhalen"><span class="i">strikethrough_s</span></button>
+          <button class="rb" data-cmd="subscript" data-state="subscript" title="Subscript (Ctrl+=)"><span class="i">subscript</span></button>
+          <button class="rb" data-cmd="superscript" data-state="superscript" title="Superscript (Ctrl+Shift+=)"><span class="i">superscript</span></button>
+          <div class="split">
+            <button class="rb color-btn" data-cmd="hiliteColor" title="Markeren"><span class="i">ink_highlighter</span><span class="swatch" id="sw-hilite"></span></button>
+            <button class="rb arrow" data-menu="color:hiliteColor" title="Markeerkleur kiezen"><span class="i">arrow_drop_down</span></button>
+          </div>
+          <div class="split">
+            <button class="rb color-btn" data-cmd="foreColor" title="Tekstkleur"><span class="i">format_color_text</span><span class="swatch" id="sw-fore"></span></button>
+            <button class="rb arrow" data-menu="color:foreColor" title="Tekstkleur kiezen"><span class="i">arrow_drop_down</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="grp-label">Lettertype<button class="launcher" data-cmd="fontDialog" title="Lettertype-instellingen (Ctrl+D)"><span class="i">south_east</span></button></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-body rows">
+        <div class="row">
+          <div class="split">
+            <button class="rb" data-cmd="bullets" data-state="insertUnorderedList" title="Opsommingstekens"><span class="i">format_list_bulleted</span></button>
+            <button class="rb arrow" data-menu="m-bullets" title="Opsommingstekens kiezen"><span class="i">arrow_drop_down</span></button>
+          </div>
+          <div class="split">
+            <button class="rb" data-cmd="numbering" data-state="insertOrderedList" title="Nummering"><span class="i">format_list_numbered</span></button>
+            <button class="rb arrow" data-menu="m-numbering" title="Nummering kiezen"><span class="i">arrow_drop_down</span></button>
+          </div>
+          <button class="rb" data-menu="m-multilevel" title="Lijst met meerdere niveaus"><span class="i">toc</span><span class="i caret">arrow_drop_down</span></button>
+          <button class="rb" data-cmd="outdent" title="Inspringing verkleinen (Shift+Tab)"><span class="i">format_indent_decrease</span></button>
+          <button class="rb" data-cmd="indent" title="Inspringing vergroten (Tab)"><span class="i">format_indent_increase</span></button>
+          <button class="rb" data-menu="m-sort" title="Sorteren"><span class="i">sort_by_alpha</span></button>
+          <button class="rb" data-cmd="toggleMarks" data-state="marks" title="Alles weergeven (Ctrl+*)"><span class="i">format_paragraph</span></button>
+        </div>
+        <div class="row">
+          <button class="rb" data-cmd="justifyLeft" data-state="justifyLeft" title="Links uitlijnen (Ctrl+L)"><span class="i">format_align_left</span></button>
+          <button class="rb" data-cmd="justifyCenter" data-state="justifyCenter" title="Centreren (Ctrl+E)"><span class="i">format_align_center</span></button>
+          <button class="rb" data-cmd="justifyRight" data-state="justifyRight" title="Rechts uitlijnen (Ctrl+R)"><span class="i">format_align_right</span></button>
+          <button class="rb" data-cmd="justifyFull" data-state="justifyFull" title="Uitvullen (Ctrl+J)"><span class="i">format_align_justify</span></button>
+          <button class="rb" data-cmd="dirLtr" data-state="dirLtr" title="Tekstrichting van links naar rechts"><span class="i">format_textdirection_l_to_r</span></button>
+          <button class="rb" data-cmd="dirRtl" data-state="dirRtl" title="Tekstrichting van rechts naar links"><span class="i">format_textdirection_r_to_l</span></button>
+          <button class="rb" data-menu="m-linespacing" title="Regel- en alinea-afstand"><span class="i">format_line_spacing</span><span class="i caret">arrow_drop_down</span></button>
+          <div class="split">
+            <button class="rb color-btn" data-cmd="shading" title="Arcering"><span class="i">format_color_fill</span><span class="swatch" id="sw-shade"></span></button>
+            <button class="rb arrow" data-menu="color:shading" title="Arcering kiezen"><span class="i">arrow_drop_down</span></button>
+          </div>
+          <button class="rb" data-menu="m-borders" title="Randen"><span class="i">border_bottom</span><span class="i caret">arrow_drop_down</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Alinea<button class="launcher" data-cmd="paragraphDialog" title="Alinea-instellingen"><span class="i">south_east</span></button></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-body">
+        <div id="style-gallery" class="gallery"></div>
+      </div>
+      <div class="grp-label">Stijlen<button class="launcher" data-cmd="toggleStylesPane" title="Stijlen (Ctrl+Alt+Shift+S)"><span class="i">south_east</span></button></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-body col">
+        <button class="rb wide" data-cmd="find" title="Zoeken (Ctrl+F)"><span class="i">search</span><span>Zoeken</span></button>
+        <button class="rb wide" data-cmd="replace" title="Vervangen (Ctrl+H)"><span class="i">find_replace</span><span>Vervangen</span></button>
+        <div class="split">
+          <button class="rb wide" data-cmd="selectAll" data-state="objSelect" title="Alles selecteren (Ctrl+A)"><span class="i">select_all</span><span>Selecteren</span></button>
+          <button class="rb arrow" data-menu="m-select" title="Selecteren"><span class="i">arrow_drop_down</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Bewerken</div>
+    </div>
+  </div>
+
+  <!-- INVOEGEN -->
+  <div class="panel" data-panel="insert">
+    <div class="grp">
+      <div class="grp-body col">
+        <button class="rb wide" data-menu="m-cover" title="Voorblad"><span class="i">book_2</span><span>Voorblad</span><span class="i caret">arrow_drop_down</span></button>
+        <button class="rb wide" data-cmd="blankPage" title="Lege pagina"><span class="i">note_add</span><span>Lege pagina</span></button>
+        <button class="rb wide" data-cmd="pageBreak" title="Pagina-einde (Ctrl+Enter)"><span class="i">insert_page_break</span><span>Pagina-einde</span></button>
+      </div>
+      <div class="grp-label">Pagina's</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="table-grid" title="Tabel invoegen"><span class="i">table</span><span>Tabel</span></button>
+      </div>
+      <div class="grp-label">Tabellen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-picture" title="Afbeelding invoegen"><span class="i">image</span><span>Afbeelding</span></button>
+        <button class="rb lg" data-menu="m-shapes" title="Vormen"><span class="i">interests</span><span>Vormen</span></button>
+        <button class="rb lg" data-cmd="insertIcons" title="Pictogrammen"><span class="i">category</span><span>Picto&shy;grammen</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="insertSmartArt" title="SmartArt-afbeelding invoegen"><span class="i">account_tree</span><span>SmartArt</span></button>
+          <button class="rb wide" data-cmd="insertChart" title="Grafiek"><span class="i">bar_chart</span><span>Grafiek</span></button>
+          <button class="rb wide" data-menu="m-screenshot" title="Schermopname"><span class="i">screenshot_monitor</span><span>Schermopname</span><span class="i caret">arrow_drop_down</span></button>
+        </div>
+        <button class="rb lg" data-cmd="insertHr" title="Horizontale lijn"><span class="i">horizontal_rule</span><span>Lijn</span></button>
+      </div>
+      <div class="grp-label">Illustraties</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="link" title="Koppeling (Ctrl+K)"><span class="i">link</span><span>Koppeling</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="bookmark" title="Bladwijzer"><span class="i">bookmark</span><span>Bladwijzer</span></button>
+          <button class="rb wide" data-cmd="crossReference" title="Kruisverwijzing"><span class="i">move_down</span><span>Kruisverwijzing</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Koppelingen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="newComment" title="Opmerking (Ctrl+Alt+M)"><span class="i">add_comment</span><span>Opmerking</span></button>
+      </div>
+      <div class="grp-label">Opmerkingen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-header" title="Koptekst"><span class="i">vertical_align_top</span><span>Koptekst</span></button>
+        <button class="rb lg" data-menu="m-footer" title="Voettekst"><span class="i">vertical_align_bottom</span><span>Voettekst</span></button>
+        <button class="rb lg" data-menu="m-pagenum" title="Paginanummer"><span class="i">tag</span><span>Paginanr.</span></button>
+      </div>
+      <div class="grp-label">Koptekst &amp; voettekst</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="textBox" title="Tekstvak"><span class="i">text_fields</span><span>Tekstvak</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-wordart" title="Sierletters (decoratieve tekst)"><span class="i">format_shapes</span><span>Sierletters</span></button>
+          <button class="rb wide" data-menu="m-dropcap" data-state="dropcap" title="Initiaal"><span class="i">format_size</span><span>Initiaal</span><span class="i caret">arrow_drop_down</span></button>
+          <button class="rb wide" data-cmd="dateTime" title="Datum en tijd"><span class="i">calendar_today</span><span>Datum &amp; tijd</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-menu="m-quickparts" title="Snelonderdelen"><span class="i">dashboard_customize</span><span>Snelonderdelen</span><span class="i caret">arrow_drop_down</span></button>
+          <button class="rb wide" data-cmd="signatureLine" title="Handtekeningregel"><span class="i">signature</span><span>Handtekening</span></button>
+          <button class="rb wide" data-cmd="insertFile" title="Tekst uit bestand"><span class="i">attach_file</span><span>Uit bestand</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Tekst</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="equation" title="Vergelijking"><span class="i">function</span><span>Vergelijking</span></button>
+        <button class="rb lg" data-cmd="symbol" title="Symbool"><span class="i">emoji_symbols</span><span>Symbool</span></button>
+      </div>
+      <div class="grp-label">Symbolen</div>
+    </div>
+  </div>
+
+  <!-- TEKENEN -->
+  <div class="panel" data-panel="draw">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="drawSelect" data-state="draw-select" title="Selecteren (stoppen met tekenen)"><span class="i">arrow_selector_tool</span><span>Selecteren</span></button>
+        <button class="rb lg" data-cmd="drawTool" data-arg="eraser" data-state="draw-eraser" title="Gum: klik of sleep over een streek om die te wissen"><span class="i">ink_eraser</span><span>Gum</span></button>
+        <button class="rb lg pen-btn" data-cmd="drawTool" data-arg="pen0" data-pen="0" data-state="draw-pen0" title="Pen"><span class="i">stylus</span><span class="pen-sw"></span></button>
+        <button class="rb lg pen-btn" data-cmd="drawTool" data-arg="pen1" data-pen="1" data-state="draw-pen1" title="Pen"><span class="i">stylus</span><span class="pen-sw"></span></button>
+        <button class="rb lg pen-btn" data-cmd="drawTool" data-arg="pen2" data-pen="2" data-state="draw-pen2" title="Pen"><span class="i">stylus</span><span class="pen-sw"></span></button>
+        <button class="rb lg pen-btn" data-cmd="drawTool" data-arg="pen3" data-pen="3" data-state="draw-pen3" title="Markeerstift"><span class="i">ink_highlighter</span><span class="pen-sw"></span></button>
+      </div>
+      <div class="grp-label">Hulpmiddelen voor tekenen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="drawUndo" title="Laatste streek ongedaan maken (Ctrl+Z)"><span class="i">undo</span><span>Streek terug</span></button>
+        <button class="rb lg" data-cmd="drawCanvas" title="Tekenvlak invoegen"><span class="i">draw</span><span>Tekenvlak</span></button>
+      </div>
+      <div class="grp-label">Bewerken</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg accent" data-cmd="drawStop" title="Stoppen met tekenen (Esc)"><span class="i">edit_off</span><span>Stoppen met tekenen</span></button>
+      </div>
+      <div class="grp-label">Sluiten</div>
+    </div>
+  </div>
+
+  <!-- ONTWERP -->
+  <div class="panel" data-panel="design">
+    <div class="grp">
+      <div class="grp-body">
+        <div id="theme-gallery" class="gallery themes"></div>
+      </div>
+      <div class="grp-label">Documentthema</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-fonts" title="Lettertypen van thema"><span class="i">font_download</span><span>Lettertypen</span></button>
+        <button class="rb lg" data-menu="m-colors" title="Kleuren van thema"><span class="i">palette</span><span>Kleuren</span></button>
+        <button class="rb lg" data-menu="m-spacing" title="Alinea-afstand"><span class="i">format_line_spacing</span><span>Afstand</span></button>
+      </div>
+      <div class="grp-label">Opmaak</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-watermark" title="Watermerk"><span class="i">branding_watermark</span><span>Watermerk</span></button>
+        <button class="rb lg" data-menu="color:pageColor" title="Paginakleur"><span class="i">format_color_fill</span><span>Paginakleur</span></button>
+        <button class="rb lg" data-menu="m-pageborder" title="Paginaranden"><span class="i">border_outer</span><span>Paginaranden</span></button>
+      </div>
+      <div class="grp-label">Paginaachtergrond</div>
+    </div>
+  </div>
+
+  <!-- INDELING -->
+  <div class="panel" data-panel="layout">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-margins" title="Marges"><span class="i">margin</span><span>Marges</span></button>
+        <button class="rb lg" data-menu="m-orient" title="Afdrukstand"><span class="i">crop_rotate</span><span>Afdrukstand</span></button>
+        <button class="rb lg" data-menu="m-size" title="Paginaformaat"><span class="i">description</span><span>Formaat</span></button>
+        <button class="rb lg" data-menu="m-columns" title="Kolommen"><span class="i">view_column</span><span>Kolommen</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-breaks" title="Eindemarkeringen (pagina-, kolom- en sectie-einden)"><span class="i">insert_page_break</span><span>Eindemarkeringen</span></button>
+          <button class="rb wide" data-menu="m-linenumbers" title="Regelnummers"><span class="i">format_list_numbered</span><span>Regelnummers</span></button>
+          <button class="rb wide" data-cmd="toggleHyphen" data-state="hyphen" title="Automatisch woorden afbreken"><span class="i">wrap_text</span><span>Afbreken</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Pagina-instelling<button class="launcher" data-cmd="pageSetup" title="Pagina-instelling"><span class="i">south_east</span></button></div>
+    </div>
+    <div class="grp">
+      <div class="grp-body rows">
+        <div class="row lbl-row"><span class="lbl">Inspringen</span>
+          <label class="num">Links <input type="number" step="0.25" min="0" id="ind-left" data-cmd="indentLeft"> cm</label>
+          <label class="num">Rechts <input type="number" step="0.25" min="0" id="ind-right" data-cmd="indentRight"> cm</label>
+        </div>
+        <div class="row lbl-row"><span class="lbl">Afstand</span>
+          <label class="num">Voor <input type="number" step="2" min="0" id="sp-before" data-cmd="spaceBefore"> pt</label>
+          <label class="num">Na <input type="number" step="2" min="0" id="sp-after" data-cmd="spaceAfter"> pt</label>
+        </div>
+      </div>
+      <div class="grp-label">Alinea<button class="launcher" data-cmd="paragraphDialog" title="Alinea-instellingen"><span class="i">south_east</span></button></div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="tabsDialog" title="Tabs: tabstops instellen voor de geselecteerde alinea's"><span class="i">keyboard_tab</span><span>Tabs</span></button>
+      </div>
+      <div class="grp-label">Tabstops</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-position" title="Positie van het geselecteerde object"><span class="i">picture_in_picture</span><span>Positie</span></button>
+        <button class="rb lg" data-menu="m-wrap2" title="Tekstterugloop van het geselecteerde object"><span class="i">wrap_text</span><span>Tekstterugloop</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-forward" title="Naar voren"><span class="i">flip_to_front</span><span>Naar voren</span></button>
+          <button class="rb wide" data-menu="m-backward" title="Naar achteren"><span class="i">flip_to_back</span><span>Naar achteren</span></button>
+          <button class="rb wide" data-menu="m-objalign" title="Uitlijnen"><span class="i">align_horizontal_left</span><span>Uitlijnen</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Schikken</div>
+    </div>
+  </div>
+
+  <!-- VERWIJZINGEN -->
+  <div class="panel" data-panel="references">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-toc" title="Inhoudsopgave"><span class="i">toc</span><span>Inhoudsopgave</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-addtext" title="Tekst toevoegen: niveau van de alinea in de inhoudsopgave"><span class="i">playlist_add</span><span>Tekst toevoegen</span></button>
+          <button class="rb wide" data-cmd="updateToc" title="Inhoudsopgave bijwerken"><span class="i">refresh</span><span>Inhoudsopgave bijwerken</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Inhoudsopgave</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="footnote" title="Voetnoot invoegen (Ctrl+Alt+F)"><span class="i">edit_note</span><span>Voetnoot invoegen</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="endnote" title="Eindnoot invoegen (Ctrl+Alt+D)"><span class="i">note_add</span><span>Eindnoot invoegen</span></button>
+          <div class="split"><button class="rb wide" data-cmd="nextFootnote" title="Volgende voetnoot"><span class="i">arrow_downward</span><span>Volgende voetnoot</span></button><button class="rb arrow" data-menu="m-nextnote" title="Volgende of vorige voetnoot/eindnoot"><span class="i">arrow_drop_down</span></button></div>
+          <button class="rb wide" data-menu="m-shownotes" title="Notities weergeven"><span class="i">notes</span><span>Notities weergeven</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Voetnoten<button class="launcher" data-cmd="notesDialog" title="Voetnoten en eindnoten"><span class="i">south_east</span></button></div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-cite" title="Citaat invoegen"><span class="i">format_quote</span><span>Citaat</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="manageSources" title="Bronnen beheren"><span class="i">library_books</span><span>Bronnen</span></button>
+          <label class="rb wide sel-wrap" title="Stijl">Stijl
+            <select id="cite-style" data-cmd="citeStyle"><option value="apa">APA</option><option value="mla">MLA</option><option value="chicago">Chicago</option></select>
+          </label>
+          <button class="rb wide" data-cmd="bibliography" title="Bibliografie invoegen"><span class="i">menu_book</span><span>Bibliografie</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Citaten &amp; bibliografie</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="caption" title="Bijschrift invoegen"><span class="i">subtitles</span><span>Bijschrift</span></button>
+        <button class="rb lg" data-cmd="tableOfFigures" title="Lijst met afbeeldingen"><span class="i">photo_library</span><span>Lijst</span></button>
+      </div>
+      <div class="grp-label">Bijschriften</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="markIndexEntry" title="Item markeren (Alt+Shift+X)"><span class="i">bookmark_add</span><span>Item markeren</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="insertIndex" title="Index invoegen"><span class="i">list_alt</span><span>Index invoegen</span></button>
+          <button class="rb wide" data-cmd="updateIndex" title="Index bijwerken"><span class="i">refresh</span><span>Index bijwerken</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Index</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="markCitation" title="Citaat markeren (Alt+Shift+I)"><span class="i">gavel</span><span>Citaat markeren</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="insertToa" title="Lijst met rechtsbronnen invoegen"><span class="i">balance</span><span>Lijst invoegen</span></button>
+          <button class="rb wide" data-cmd="updateToa" title="Lijst met rechtsbronnen bijwerken"><span class="i">refresh</span><span>Lijst bijwerken</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Lijst met rechtsbronnen</div>
+    </div>
+  </div>
+
+  <!-- VERZENDLIJSTEN -->
+  <div class="panel" data-panel="mailings">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="envelope" title="Envelop"><span class="i">mail</span><span>Envelop</span></button>
+        <button class="rb lg" data-cmd="labels" title="Etiketten"><span class="i">label</span><span>Etiketten</span></button>
+      </div>
+      <div class="grp-label">Maken</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-startmerge" title="Afdruk samenvoegen starten"><span class="i">merge_type</span><span>Samenvoegen starten</span></button>
+        <button class="rb lg" data-menu="m-recipients" title="Adressen selecteren"><span class="i">group</span><span>Adressen</span></button>
+        <button class="rb lg" data-cmd="editRecipients" title="Adreslijst bewerken"><span class="i">contacts</span><span>Lijst bewerken</span></button>
+      </div>
+      <div class="grp-label">Afdruk samenvoegen starten</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="mergeHighlight" data-state="mergeHL" title="Samenvoegvelden markeren"><span class="i">highlight</span><span>Markeren</span></button>
+        <button class="rb lg" data-cmd="addressBlock" title="Adresblok"><span class="i">home</span><span>Adresblok</span></button>
+        <button class="rb lg" data-cmd="greetingLine" title="Begroetingsregel"><span class="i">short_text</span><span>Begroeting</span></button>
+        <button class="rb lg" data-menu="m-mergefield" title="Samenvoegveld invoegen"><span class="i">data_object</span><span>Veld invoegen</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-rules" title="Regels (velden)"><span class="i">rule</span><span>Regels</span></button>
+          <button class="rb wide" data-cmd="matchFields" title="Velden koppelen"><span class="i">compare_arrows</span><span>Velden koppelen</span></button>
+          <button class="rb wide" data-cmd="updateLabels" title="Etiketten bijwerken"><span class="i">sync</span><span>Etiketten bijwerken</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Velden schrijven en invoegen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="mergePreview" data-state="mergePreview" title="Voorbeeld van resultaten"><span class="i">preview</span><span>Voorbeeld</span></button>
+        <div class="col">
+          <div class="row">
+            <button class="rb" data-cmd="mergeFirst" title="Eerste"><span class="i">first_page</span></button>
+            <button class="rb" data-cmd="mergePrev" title="Vorige"><span class="i">chevron_left</span></button>
+            <input id="merge-rec" class="rsel tiny" value="1" data-cmd="mergeGoto" title="Record">
+            <button class="rb" data-cmd="mergeNext" title="Volgende"><span class="i">chevron_right</span></button>
+            <button class="rb" data-cmd="mergeLast" title="Laatste"><span class="i">last_page</span></button>
+          </div>
+          <span id="merge-info" class="muted small">Geen adreslijst</span>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="findRecipient" title="Ontvanger zoeken"><span class="i">person_search</span><span>Ontvanger zoeken</span></button>
+          <button class="rb wide" data-cmd="checkMergeErrors" title="Controleren op fouten"><span class="i">rule</span><span>Controleren op fouten</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Voorbeeld</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-finish" title="Voltooien en samenvoegen"><span class="i">merge</span><span>Voltooien</span></button>
+      </div>
+      <div class="grp-label">Voltooien</div>
+    </div>
+  </div>
+
+  <!-- CONTROLEREN -->
+  <div class="panel" data-panel="review">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="toggleSpell" data-state="spell" title="Spelling en grammatica (F7)"><span class="i">spellcheck</span><span>Spelling</span></button>
+        <button class="rb lg" data-cmd="wordCount" title="Woorden tellen"><span class="i">abc</span><span>Woorden</span></button>
+      </div>
+      <div class="grp-label">Controle</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="accessibilityCheck" title="Toegankelijkheid controleren"><span class="i">accessibility_new</span><span>Toegankelijkheid controleren</span></button>
+      </div>
+      <div class="grp-label">Toegankelijkheid</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="readAloud" data-state="speaking" title="Voorlezen"><span class="i">record_voice_over</span><span>Voorlezen</span></button>
+        <button class="rb lg" data-menu="m-lang" title="Taal"><span class="i">translate</span><span>Taal</span></button>
+      </div>
+      <div class="grp-label">Spraak &amp; taal</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="newComment" title="Nieuwe opmerking (Ctrl+Alt+M)"><span class="i">add_comment</span><span>Nieuw</span></button>
+        <div class="col">
+          <button class="rb wide" data-menu="m-delcomment" title="Verwijderen"><span class="i">delete</span><span>Verwijderen</span></button>
+          <button class="rb wide" data-cmd="prevComment" title="Vorige opmerking"><span class="i">navigate_before</span><span>Vorige</span></button>
+          <button class="rb wide" data-cmd="nextComment" title="Volgende opmerking"><span class="i">navigate_next</span><span>Volgende</span></button>
+        </div>
+        <button class="rb lg" data-cmd="toggleComments" data-state="comments" title="Opmerkingen weergeven"><span class="i">forum</span><span>Weergeven</span></button>
+      </div>
+      <div class="grp-label">Opmerkingen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="split lg">
+          <button class="rb lg" data-cmd="toggleTrack" data-state="track" title="Wijzigingen bijhouden (Ctrl+Shift+E)"><span class="i">track_changes</span><span>Wijzigingen bijhouden</span></button>
+          <button class="rb arrow" data-menu="m-track" title="Bijhouden: voor iedereen of vergrendelen"><span class="i">expand_more</span></button>
+        </div>
+        <div class="col">
+          <label class="rb wide sel-wrap" title="Weergave voor revisie">
+            <span class="i">visibility</span>
+            <select id="markup-mode" data-cmd="markupMode">
+              <option value="all">Alle markeringen</option>
+              <option value="simple">Eenvoudige markering</option>
+              <option value="none">Geen markeringen</option>
+              <option value="original">Origineel</option>
+            </select>
+          </label>
+          <button class="rb wide" data-menu="m-showmarkup" title="Markeringen weergeven"><span class="i">filter_list</span><span>Markeringen weergeven</span></button>
+          <div class="split"><button class="rb wide" data-cmd="reviewPane" data-state="reviewPane" title="Revisiedeelvenster"><span class="i">view_sidebar</span><span>Revisiedeelvenster</span></button><button class="rb arrow" data-menu="m-reviewpane" title="Verticaal of horizontaal"><span class="i">arrow_drop_down</span></button></div>
+        </div>
+      </div>
+      <div class="grp-label">Bijhouden</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="split lg">
+          <button class="rb lg" data-cmd="acceptChange" title="Accepteren en naar volgende"><span class="i">check_circle</span><span>Accepteren</span></button>
+          <button class="rb arrow" data-menu="m-accept"><span class="i">expand_more</span></button>
+        </div>
+        <div class="split lg">
+          <button class="rb lg" data-cmd="rejectChange" title="Weigeren en naar volgende"><span class="i">cancel</span><span>Weigeren</span></button>
+          <button class="rb arrow" data-menu="m-reject"><span class="i">expand_more</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="prevChange" title="Vorige wijziging"><span class="i">navigate_before</span><span>Vorige</span></button>
+          <button class="rb wide" data-cmd="nextChange" title="Volgende wijziging"><span class="i">navigate_next</span><span>Volgende</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Wijzigingen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="split lg">
+          <button class="rb lg" data-cmd="compareDocs" title="Twee versies van een document vergelijken"><span class="i">compare</span><span>Vergelijken</span></button>
+          <button class="rb arrow" data-menu="m-compare" title="Vergelijken of combineren"><span class="i">expand_more</span></button>
+        </div>
+        <button class="rb lg" data-cmd="toggleProtect" data-state="protect" title="Bewerking beperken"><span class="i">lock</span><span>Beveiligen</span></button>
+      </div>
+      <div class="grp-label">Overig</div>
+    </div>
+  </div>
+
+  <!-- BEELD -->
+  <div class="panel" data-panel="view">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="viewRead" title="Leesmodus"><span class="i">chrome_reader_mode</span><span>Leesmodus</span></button>
+        <button class="rb lg" data-cmd="viewPrint" data-state="viewPrint" title="Afdrukweergave"><span class="i">article</span><span>Afdruk</span></button>
+        <button class="rb lg" data-cmd="viewWeb" data-state="viewWeb" title="Webweergave"><span class="i">public</span><span>Web</span></button>
+        <button class="rb lg" data-cmd="viewFocus" title="Focusmodus (Esc om te sluiten)"><span class="i">center_focus_strong</span><span>Focus</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="viewOutline" data-state="viewOutline" title="Overzichtsweergave: koppen in- en uitklappen en verplaatsen"><span class="i">format_list_bulleted</span><span>Overzicht</span></button>
+          <button class="rb wide" data-cmd="viewDraft" data-state="viewDraft" title="Conceptweergave: alleen de tekst, zonder paginaopmaak"><span class="i">notes</span><span>Concept</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Weergaven</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="viewImmersive" title="Insluitende lezer"><span class="i">local_library</span><span>Insluitende lezer</span></button>
+      </div>
+      <div class="grp-label">Insluitend</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body col">
+        <button class="rb wide" data-cmd="pageMove" data-arg="vertical" data-state="pageVert" title="Verticaal: pagina's onder elkaar"><span class="i">view_agenda</span><span>Verticaal</span></button>
+        <button class="rb wide" data-cmd="pageMove" data-arg="side" data-state="pageSide" title="Naast elkaar: pagina's zij aan zij"><span class="i">auto_stories</span><span>Naast elkaar</span></button>
+      </div>
+      <div class="grp-label">Paginaverplaatsing</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body col">
+        <label class="chk"><input type="checkbox" id="chk-ruler" data-cmd="toggleRuler"> Liniaal</label>
+        <label class="chk"><input type="checkbox" id="chk-grid" data-cmd="toggleGrid"> Rasterlijnen</label>
+        <label class="chk"><input type="checkbox" id="chk-nav" data-cmd="toggleNav"> Navigatievenster</label>
+      </div>
+      <div class="grp-label">Weergeven</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="zoomDialog" title="In-/uitzoomen"><span class="i">zoom_in</span><span>Zoom</span></button>
+        <button class="rb lg" data-cmd="zoom100" title="100%"><span class="i">crop_free</span><span>100%</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="zoomPage" title="Eén pagina"><span class="i">fit_screen</span><span>Eén pagina</span></button>
+          <button class="rb wide" data-cmd="zoomMulti" title="Overzicht (50%)"><span class="i">auto_stories</span><span>Overzicht</span></button>
+          <button class="rb wide" data-cmd="zoomWidth" title="Paginabreedte"><span class="i">width_full</span><span>Paginabreedte</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Zoomen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="toggleDark" data-state="dark" title="Donkere modus"><span class="i">dark_mode</span><span>Donker</span></button>
+        <button class="rb lg" data-cmd="newWindow" title="Nieuw venster met dit document (alleen lezen, loopt mee)"><span class="i">open_in_new</span><span>Nieuw venster</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="arrangeAll" title="Alles schikken"><span class="i">view_stream</span><span>Alles schikken</span></button>
+          <button class="rb wide" data-cmd="splitWindow" data-state="splitOn" title="Splitsen: twee delen van hetzelfde document"><span class="i">splitscreen</span><span>Splitsen</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="sideBySide" title="Naast elkaar weergeven"><span class="i">vertical_split</span><span>Naast elkaar weergeven</span></button>
+          <button class="rb wide" data-cmd="syncScroll" data-state="syncScroll" title="Synchroon schuiven"><span class="i">swap_vert</span><span>Synchroon schuiven</span></button>
+          <button class="rb wide" data-cmd="resetWindows" title="Vensterpositie opnieuw instellen"><span class="i">restart_alt</span><span>Vensterpositie herstellen</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Venster</div>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="panel" data-panel="help">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="showShortcuts" title="Sneltoetsen"><span class="i">keyboard</span><span>Sneltoetsen</span></button>
+        <button class="rb lg" data-cmd="showTour" title="Wat kan Inkt?"><span class="i">menu_book</span><span>Rondleiding</span></button>
+        <button class="rb lg" data-cmd="showAbout" title="Over Inkt"><span class="i">info</span><span>Over</span></button>
+      </div>
+      <div class="grp-label">Help</div>
+    </div>
+  </div>
+
+  <!-- TABEL (contextueel) -->
+  <div class="panel" data-panel="table">
+    <div class="grp">
+      <div class="grp-body">
+        <div id="table-styles" class="gallery tstyles"></div>
+        <div class="col">
+          <label class="chk"><input type="checkbox" id="chk-thead" data-cmd="tableHeaderRow"> Kopregel</label>
+          <label class="chk"><input type="checkbox" id="chk-banded" data-cmd="tableBanded"> Gestreepte rijen</label>
+          <label class="chk"><input type="checkbox" id="chk-firstcol" data-cmd="tableFirstCol"> Eerste kolom</label>
+        </div>
+      </div>
+      <div class="grp-label">Tabelstijlen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="split lg">
+          <button class="rb lg color-btn" data-cmd="cellShading" title="Arcering cel"><span class="i">format_color_fill</span><span>Arcering</span></button>
+          <button class="rb arrow" data-menu="color:cellShading"><span class="i">expand_more</span></button>
+        </div>
+        <button class="rb lg" data-menu="m-tborders" title="Randen"><span class="i">border_all</span><span>Randen</span></button>
+      </div>
+      <div class="grp-label">Opmaak</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="col">
+          <button class="rb wide" data-cmd="rowAbove" title="Rij boven invoegen"><span class="i">add_row_above</span><span>Rij boven</span></button>
+          <button class="rb wide" data-cmd="rowBelow" title="Rij onder invoegen"><span class="i">add_row_below</span><span>Rij onder</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="colLeft" title="Kolom links invoegen"><span class="i">add_column_left</span><span>Kolom links</span></button>
+          <button class="rb wide" data-cmd="colRight" title="Kolom rechts invoegen"><span class="i">add_column_right</span><span>Kolom rechts</span></button>
+        </div>
+        <button class="rb lg" data-menu="m-tdelete" title="Verwijderen"><span class="i">delete</span><span>Verwijderen</span></button>
+      </div>
+      <div class="grp-label">Rijen &amp; kolommen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="col">
+          <button class="rb wide" data-cmd="mergeCells" title="Cellen samenvoegen"><span class="i">cell_merge</span><span>Samenvoegen</span></button>
+          <button class="rb wide" data-cmd="splitCell" title="Cel splitsen"><span class="i">splitscreen_vertical_add</span><span>Splitsen</span></button>
+          <button class="rb wide" data-cmd="distributeCols" title="Kolommen gelijk verdelen"><span class="i">view_week</span><span>Gelijk verdelen</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="tableAutofit" title="Passend maken op inhoud"><span class="i">fit_width</span><span>Op inhoud</span></button>
+          <button class="rb wide" data-cmd="tableFullWidth" title="Passend maken op venster"><span class="i">width_full</span><span>Volle breedte</span></button>
+          <button class="rb wide" data-menu="m-tsort" title="Tabel sorteren"><span class="i">sort</span><span>Sorteren</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Indeling</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body rows">
+        <div class="row">
+          <button class="rb" data-cmd="cellVTop" title="Boven uitlijnen"><span class="i">vertical_align_top</span></button>
+          <button class="rb" data-cmd="cellVMiddle" title="Midden uitlijnen"><span class="i">vertical_align_center</span></button>
+          <button class="rb" data-cmd="cellVBottom" title="Onder uitlijnen"><span class="i">vertical_align_bottom</span></button>
+        </div>
+        <div class="row">
+          <button class="rb" data-cmd="justifyLeft" title="Links"><span class="i">format_align_left</span></button>
+          <button class="rb" data-cmd="justifyCenter" title="Centreren"><span class="i">format_align_center</span></button>
+          <button class="rb" data-cmd="justifyRight" title="Rechts"><span class="i">format_align_right</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Uitlijning</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="tableToText" title="Converteren naar tekst"><span class="i">text_snippet</span><span>Naar tekst</span></button>
+      </div>
+      <div class="grp-label">Gegevens</div>
+    </div>
+  </div>
+
+  <!-- AFBEELDING (contextueel) -->
+  <div class="panel" data-panel="picture">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="imgCrop" title="Bijsnijden"><span class="i">crop</span><span>Bijsnijden</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="imgRotate" title="90° rechtsom draaien"><span class="i">rotate_right</span><span>Draaien</span></button>
+          <button class="rb wide" data-cmd="imgFlip" title="Horizontaal spiegelen"><span class="i">flip</span><span>Spiegelen</span></button>
+          <button class="rb wide" data-cmd="imgReset" title="Afbeelding opnieuw instellen"><span class="i">restart_alt</span><span>Herstellen</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Aanpassen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-imgcolor" title="Kleur en filters"><span class="i">filter_b_and_w</span><span>Kleur</span></button>
+        <button class="rb lg" data-menu="m-imgstyle" title="Afbeeldingsstijlen"><span class="i">photo_frame</span><span>Stijl</span></button>
+        <button class="rb lg" data-menu="m-imgborder" title="Rand"><span class="i">border_style</span><span>Rand</span></button>
+      </div>
+      <div class="grp-label">Stijl</div>
+    </div>
+    <div class="grp" id="grp-shape" hidden>
+      <div class="grp-body col">
+        <label class="chk">Vulling <input type="color" id="shape-fill" data-cmd="shapeFill"></label>
+        <label class="chk">Lijn <input type="color" id="shape-stroke" data-cmd="shapeStroke"></label>
+      </div>
+      <div class="grp-label">Vorm</div>
+    </div>
+    <div class="grp" id="grp-chart" hidden>
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="editChart" title="Gegevens bewerken"><span class="i">edit</span><span>Gegevens</span></button>
+      </div>
+      <div class="grp-label">Grafiek</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <div class="col">
+          <button class="rb wide" data-cmd="wrapInline" data-state="wrapInline" title="In tekstregel"><span class="i">notes</span><span>In regel</span></button>
+          <button class="rb wide" data-cmd="wrapLeft" data-state="wrapLeft" title="Tekst rechts ervan (links zwevend)"><span class="i">format_image_left</span><span>Links</span></button>
+          <button class="rb wide" data-cmd="wrapRight" data-state="wrapRight" title="Tekst links ervan (rechts zwevend)"><span class="i">format_image_right</span><span>Rechts</span></button>
+        </div>
+        <div class="col">
+          <button class="rb wide" data-cmd="wrapCenter" data-state="wrapCenter" title="Boven en onder, gecentreerd"><span class="i">vertical_split</span><span>Gecentreerd</span></button>
+          <button class="rb wide" data-cmd="imgAlt" title="Alternatieve tekst"><span class="i">closed_caption</span><span>Alt-tekst</span></button>
+          <button class="rb wide" data-cmd="caption" title="Bijschrift"><span class="i">subtitles</span><span>Bijschrift</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Schikken</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body rows">
+        <div class="row"><label class="num">Breedte <input type="number" step="0.5" min="0.5" id="img-width" data-cmd="imgWidth"> cm</label></div>
+        <div class="row">
+          <button class="rb" data-cmd="imgSize" data-arg="25" title="25%">¼</button>
+          <button class="rb" data-cmd="imgSize" data-arg="50" title="50%">½</button>
+          <button class="rb" data-cmd="imgSize" data-arg="75" title="75%">¾</button>
+          <button class="rb" data-cmd="imgSize" data-arg="100" title="Volle breedte"><span class="i">width_full</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Grootte</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="imgReplace" title="Afbeelding vervangen"><span class="i">swap_horiz</span><span>Vervangen</span></button>
+        <button class="rb lg" data-cmd="imgDelete" title="Verwijderen"><span class="i">delete</span><span>Verwijderen</span></button>
+      </div>
+      <div class="grp-label">Object</div>
+    </div>
+  </div>
+
+  <!-- KOPTEKST/VOETTEKST (contextueel) -->
+  <div class="panel" data-panel="hf">
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-menu="m-pagenum" title="Paginanummer"><span class="i">tag</span><span>Paginanr.</span></button>
+        <div class="col">
+          <button class="rb wide" data-cmd="hfField" data-arg="pages" title="Aantal pagina's"><span class="i">tag</span><span>Aantal pagina's</span></button>
+          <button class="rb wide" data-cmd="hfField" data-arg="date" title="Datum"><span class="i">calendar_today</span><span>Datum</span></button>
+          <button class="rb wide" data-cmd="hfField" data-arg="title" title="Documenttitel"><span class="i">title</span><span>Titel</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Invoegen</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body col">
+        <label class="chk"><input type="checkbox" id="chk-firstdiff" data-cmd="toggleFirstDiff"> Afwijkende eerste pagina</label>
+        <div class="row">
+          <button class="rb" data-cmd="justifyLeft" title="Links"><span class="i">format_align_left</span></button>
+          <button class="rb" data-cmd="justifyCenter" title="Centreren"><span class="i">format_align_center</span></button>
+          <button class="rb" data-cmd="justifyRight" title="Rechts"><span class="i">format_align_right</span></button>
+        </div>
+      </div>
+      <div class="grp-label">Opties</div>
+    </div>
+    <div class="grp">
+      <div class="grp-body">
+        <button class="rb lg" data-cmd="gotoHeader" title="Naar koptekst"><span class="i">vertical_align_top</span><span>Koptekst</span></button>
+        <button class="rb lg" data-cmd="gotoFooter" title="Naar voettekst"><span class="i">vertical_align_bottom</span><span>Voettekst</span></button>
+        <button class="rb lg accent" data-cmd="closeHF" title="Koptekst en voettekst sluiten (Esc)"><span class="i">close</span><span>Sluiten</span></button>
+      </div>
+      <div class="grp-label">Navigatie</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Werkruimte ================= -->
+<main id="workspace">
+  <aside id="navpane" hidden>
+    <div class="pane-head">
+      <strong>Navigatie</strong>
+      <button class="qb" data-cmd="toggleNav" title="Sluiten"><span class="i">close</span></button>
+    </div>
+    <div class="nav-search"><span class="i">search</span><input id="nav-search" placeholder="Zoeken in document" spellcheck="false"></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-navtab="headings">Koppen</button>
+      <button class="nav-tab" data-navtab="pages">Pagina's</button>
+      <button class="nav-tab" data-navtab="results">Resultaten</button>
+    </div>
+    <div id="nav-body"></div>
+  </aside>
+
+  <div id="vruler-wrap"><canvas id="vruler"></canvas></div>
+  <div id="canvas-scroll">
+    <div id="ruler-wrap"><canvas id="ruler"></canvas></div>
+    <div id="zoom-sizer">
+      <div id="pages">
+        <div id="sheets"></div>
+        <div id="editor" contenteditable="true" spellcheck="true" lang="nl-NL"><p><br></p></div>
+        <div id="obj-overlay" hidden>
+          <span class="h nw" data-h="nw"></span><span class="h ne" data-h="ne"></span>
+          <span class="h sw" data-h="sw"></span><span class="h se" data-h="se"></span>
+          <span class="h e" data-h="e"></span><span class="h w" data-h="w"></span>
+          <span class="size-tip"></span>
+        </div>
+      </div>
+      <div id="comment-pane"></div>
+    </div>
+  </div>
+
+  <div id="find-panel" hidden>
+    <div class="fp-row">
+      <input id="find-input" placeholder="Zoeken" spellcheck="false">
+      <span id="find-count" class="muted small"></span>
+      <button class="qb" data-cmd="findPrev" title="Vorige (Shift+Enter)"><span class="i">keyboard_arrow_up</span></button>
+      <button class="qb" data-cmd="findNext" title="Volgende (Enter)"><span class="i">keyboard_arrow_down</span></button>
+      <button class="qb" data-cmd="toggleReplaceRow" title="Vervangen"><span class="i">find_replace</span></button>
+      <button class="qb" data-cmd="closeFind" title="Sluiten (Esc)"><span class="i">close</span></button>
+    </div>
+    <div class="fp-row" id="replace-row" hidden>
+      <input id="replace-input" placeholder="Vervangen door" spellcheck="false">
+      <button class="btn small" data-cmd="replaceOne">Vervangen</button>
+      <button class="btn small" data-cmd="replaceAll">Alles</button>
+    </div>
+    <div class="fp-row opts">
+      <label class="chk"><input type="checkbox" id="find-case"> Hoofdlettergevoelig</label>
+      <label class="chk"><input type="checkbox" id="find-word"> Hele woorden</label>
+    </div>
+  </div>
+
+  <div id="read-bar" hidden>
+    <span class="i">chrome_reader_mode</span> Leesmodus
+    <span class="spacer"></span>
+    <button class="btn small" data-cmd="readFontDown">A−</button>
+    <button class="btn small" data-cmd="readFontUp">A+</button>
+    <button class="btn small" data-cmd="readSepia">Sepia</button>
+    <button class="btn small primary" data-cmd="viewPrint">Sluiten</button>
+  </div>
+</main>
+
+<!-- ================= Statusbalk ================= -->
+<footer id="statusbar">
+  <button class="sb" data-sbi="section" id="sb-section" title="Sectie waarin de cursor staat">Sectie: 1</button>
+  <button class="sb" data-sbi="page" data-cmd="gotoDialog" id="sb-page" title="Ga naar pagina">Pagina 1 van 1</button>
+  <button class="sb" data-sbi="words" data-cmd="wordCount" id="sb-words" title="Woorden tellen">0 woorden</button>
+  <button class="sb ic" data-sbi="spell" data-cmd="toggleSpell" id="sb-spell" title="Spelling- en grammaticacontrole"><span class="i">spellcheck</span></button>
+  <button class="sb" data-sbi="lang" data-menu="m-lang" id="sb-lang" title="Taal">Nederlands</button>
+  <button class="sb" data-sbi="a11y" data-cmd="accessibilityCheck" id="sb-a11y" title="Toegankelijkheid controleren"><span class="i">accessibility_new</span> <span class="t">Toegankelijkheid: goed om te gaan</span></button>
+  <button class="sb" data-sbi="track" data-cmd="toggleTrack" id="sb-track" hidden><span class="i">track_changes</span> <span class="t">Wijzigingen bijhouden</span></button>
+  <span class="sb" id="sb-protect" hidden><span class="i">lock</span> Beveiligd</span>
+  <span class="sb" id="sb-final" hidden><span class="i">verified</span> Definitief</span>
+  <span class="sb-spacer"></span>
+  <button class="sb focus-btn" data-sbi="focus" data-cmd="viewFocus" title="Focusmodus"><span class="i">center_focus_weak</span>Focus</button>
+  <button class="sb ic" data-sbi="views" data-cmd="viewRead" title="Leesmodus"><span class="i">chrome_reader_mode</span></button>
+  <button class="sb ic" data-sbi="views" data-cmd="viewPrint" data-state="viewPrint" title="Afdrukweergave"><span class="i">article</span></button>
+  <button class="sb ic" data-sbi="views" data-cmd="viewWeb" data-state="viewWeb" title="Webweergave"><span class="i">public</span></button>
+  <span class="zoom-ctl">
+    <button class="sb ic" data-sbi="zoomslider" data-cmd="zoomOut" title="Uitzoomen"><span class="i">remove</span></button>
+    <input type="range" data-sbi="zoomslider" id="zoom-range" min="25" max="300" step="5" value="100" data-cmd="zoomSet">
+    <button class="sb ic" data-sbi="zoomslider" data-cmd="zoomIn" title="Inzoomen"><span class="i">add</span></button>
+    <button class="sb" data-sbi="zoom" id="zoom-label" data-cmd="zoomDialog">100%</button>
+  </span>
+</footer>
+
+<!-- ================= Zwevende werkbalk ================= -->
+<div id="minibar" hidden>
+  <button class="rb" data-cmd="shrinkFont" title="Kleiner"><span class="i">text_decrease</span></button>
+  <button class="rb" data-cmd="growFont" title="Groter"><span class="i">text_increase</span></button>
+  <span class="sep"></span>
+  <button class="rb" data-cmd="bold" data-state="bold"><span class="i">format_bold</span></button>
+  <button class="rb" data-cmd="italic" data-state="italic"><span class="i">format_italic</span></button>
+  <button class="rb" data-cmd="underline" data-state="underline"><span class="i">format_underlined</span></button>
+  <button class="rb" data-menu="color:foreColor" title="Tekstkleur"><span class="i">format_color_text</span></button>
+  <button class="rb" data-menu="color:hiliteColor" title="Markeren"><span class="i">ink_highlighter</span></button>
+  <span class="sep"></span>
+  <button class="rb" data-cmd="bullets"><span class="i">format_list_bulleted</span></button>
+  <button class="rb" data-cmd="link" title="Koppeling"><span class="i">link</span></button>
+  <button class="rb" data-cmd="newComment" title="Opmerking"><span class="i">add_comment</span></button>
+</div>
+
+<div id="popup-layer"></div>
+<div id="dialog-layer"></div>
+<div id="toast-layer"></div>
+<input type="file" id="file-input" hidden>
+
+<!-- ================= Menu-inhoud ================= -->
+<div id="menus" hidden>
+  <div id="m-paste">
+    <button data-cmd="paste"><span class="i">content_paste</span> Opmaak behouden</button>
+    <button data-cmd="pasteText"><span class="i">text_fields</span> Alleen tekst behouden</button>
+  </div>
+  <div id="m-case">
+    <button data-cmd="changeCase" data-arg="sentence">Zin beginnen met hoofdletter.</button>
+    <button data-cmd="changeCase" data-arg="lower">kleine letters</button>
+    <button data-cmd="changeCase" data-arg="upper">HOOFDLETTERS</button>
+    <button data-cmd="changeCase" data-arg="title">Elk Woord Met Hoofdletter</button>
+    <button data-cmd="changeCase" data-arg="toggle">hOOFDLETTERS wISSELEN</button>
+  </div>
+  <div id="m-underline">
+    <button data-cmd="underlineStyle" data-arg="solid"><span class="ul-demo" style="text-decoration:underline solid">Enkel</span></button>
+    <button data-cmd="underlineStyle" data-arg="double"><span class="ul-demo" style="text-decoration:underline double">Dubbel</span></button>
+    <button data-cmd="underlineStyle" data-arg="dotted"><span class="ul-demo" style="text-decoration:underline dotted">Gestippeld</span></button>
+    <button data-cmd="underlineStyle" data-arg="dashed"><span class="ul-demo" style="text-decoration:underline dashed">Gestreept</span></button>
+    <button data-cmd="underlineStyle" data-arg="wavy"><span class="ul-demo" style="text-decoration:underline wavy">Golvend</span></button>
+  </div>
+  <div id="m-bullets" class="grid-menu">
+    <button data-cmd="bulletStyle" data-arg="disc" title="Rondje">●</button>
+    <button data-cmd="bulletStyle" data-arg="circle" title="Cirkel">○</button>
+    <button data-cmd="bulletStyle" data-arg="square" title="Vierkant">■</button>
+    <button data-cmd="bulletStyle" data-arg="lst-dash" title="Streepje">–</button>
+    <button data-cmd="bulletStyle" data-arg="lst-arrow" title="Pijl">➤</button>
+    <button data-cmd="bulletStyle" data-arg="lst-check" title="Vinkje">✓</button>
+    <button data-cmd="bulletStyle" data-arg="lst-star" title="Ster">★</button>
+    <button data-cmd="bulletStyle" data-arg="lst-diamond" title="Ruit">◆</button>
+    <button data-cmd="checklist" title="Takenlijst met selectievakjes">☐</button>
+  </div>
+  <div id="m-numbering" class="grid-menu wide">
+    <button data-cmd="numberStyle" data-arg="decimal">1. 2. 3.</button>
+    <button data-cmd="numberStyle" data-arg="lst-paren">1) 2) 3)</button>
+    <button data-cmd="numberStyle" data-arg="lower-alpha">a. b. c.</button>
+    <button data-cmd="numberStyle" data-arg="upper-alpha">A. B. C.</button>
+    <button data-cmd="numberStyle" data-arg="lower-roman">i. ii. iii.</button>
+    <button data-cmd="numberStyle" data-arg="upper-roman">I. II. III.</button>
+    <button data-cmd="numberStyle" data-arg="decimal-leading-zero">01. 02.</button>
+    <button data-cmd="numberStart">Beginwaarde…</button>
+  </div>
+  <div id="m-sort">
+    <button data-cmd="sortBlocks" data-arg="asc"><span class="i">arrow_downward</span> Alinea's sorteren A → Z</button>
+    <button data-cmd="sortBlocks" data-arg="desc"><span class="i">arrow_upward</span> Alinea's sorteren Z → A</button>
+  </div>
+  <div id="m-linespacing">
+    <button data-cmd="lineSpacing" data-arg="1">1,0</button>
+    <button data-cmd="lineSpacing" data-arg="1.15">1,15</button>
+    <button data-cmd="lineSpacing" data-arg="1.5">1,5</button>
+    <button data-cmd="lineSpacing" data-arg="2">2,0</button>
+    <button data-cmd="lineSpacing" data-arg="2.5">2,5</button>
+    <button data-cmd="lineSpacing" data-arg="3">3,0</button>
+    <hr>
+    <button data-cmd="toggleSpaceBefore">Afstand vóór alinea wisselen</button>
+    <button data-cmd="toggleSpaceAfter">Afstand na alinea wisselen</button>
+    <button data-cmd="paragraphDialog">Opties voor regelafstand…</button>
+  </div>
+  <div id="m-borders">
+    <button data-cmd="paraBorder" data-arg="bottom"><span class="i">border_bottom</span> Onderrand</button>
+    <button data-cmd="paraBorder" data-arg="top"><span class="i">border_top</span> Bovenrand</button>
+    <button data-cmd="paraBorder" data-arg="left"><span class="i">border_left</span> Linkerrand</button>
+    <button data-cmd="paraBorder" data-arg="right"><span class="i">border_right</span> Rechterrand</button>
+    <button data-cmd="paraBorder" data-arg="box"><span class="i">border_outer</span> Kader</button>
+    <button data-cmd="paraBorder" data-arg="none"><span class="i">border_clear</span> Geen rand</button>
+    <hr>
+    <button data-cmd="insertHr"><span class="i">horizontal_rule</span> Horizontale lijn</button>
+  </div>
+  <div id="m-cover" class="cards"></div>
+  <div id="m-picture">
+    <button data-cmd="imageFromFile"><span class="i">upload</span> Van dit apparaat…</button>
+    <button data-cmd="imageFromUrl"><span class="i">link</span> Van internetadres…</button>
+  </div>
+  <div id="m-shapes" class="grid-menu shapes"></div>
+  <div id="m-pagenum">
+    <button data-cmd="pageNumber" data-arg="footer-center">Onderaan, gecentreerd</button>
+    <button data-cmd="pageNumber" data-arg="footer-right">Onderaan, rechts</button>
+    <button data-cmd="pageNumber" data-arg="footer-left">Onderaan, links</button>
+    <button data-cmd="pageNumber" data-arg="header-right">Bovenaan, rechts</button>
+    <button data-cmd="pageNumber" data-arg="header-center">Bovenaan, gecentreerd</button>
+    <button data-cmd="pageNumber" data-arg="footer-of">Onderaan: "Pagina X van Y"</button>
+    <hr>
+    <button data-cmd="pageNumber" data-arg="remove">Paginanummers verwijderen</button>
+  </div>
+  <div id="m-wordart" class="grid-menu wordart"></div>
+  <div id="m-fonts"></div>
+  <div id="m-colors"></div>
+  <div id="m-spacing">
+    <button data-cmd="docSpacing" data-arg="none">Geen alinea-afstand</button>
+    <button data-cmd="docSpacing" data-arg="compact">Compact</button>
+    <button data-cmd="docSpacing" data-arg="normal">Normaal</button>
+    <button data-cmd="docSpacing" data-arg="open">Ruim</button>
+    <button data-cmd="docSpacing" data-arg="double">Dubbel</button>
+  </div>
+  <div id="m-watermark">
+    <button data-cmd="watermark" data-arg="CONCEPT">CONCEPT</button>
+    <button data-cmd="watermark" data-arg="VERTROUWELIJK">VERTROUWELIJK</button>
+    <button data-cmd="watermark" data-arg="NIET KOPIËREN">NIET KOPIËREN</button>
+    <button data-cmd="watermark" data-arg="VOORBEELD">VOORBEELD</button>
+    <button data-cmd="watermark" data-arg="DRINGEND">DRINGEND</button>
+    <hr>
+    <button data-cmd="watermarkCustom">Aangepast watermerk…</button>
+    <button data-cmd="watermark" data-arg="">Watermerk verwijderen</button>
+  </div>
+  <div id="m-pageborder">
+    <button data-cmd="pageBorder" data-arg="">Geen</button>
+    <button data-cmd="pageBorder" data-arg="thin">Dunne lijn</button>
+    <button data-cmd="pageBorder" data-arg="thick">Dikke lijn</button>
+    <button data-cmd="pageBorder" data-arg="double">Dubbele lijn</button>
+    <button data-cmd="pageBorder" data-arg="dashed">Gestreept</button>
+    <button data-cmd="pageBorder" data-arg="accent">Accentkleur</button>
+  </div>
+  <div id="m-margins">
+    <button data-cmd="margins" data-arg="2.54,2.54,2.54,2.54"><b>Normaal</b><small>Boven 2,54 · Onder 2,54 · Links 2,54 · Rechts 2,54 cm</small></button>
+    <button data-cmd="margins" data-arg="1.27,1.27,1.27,1.27"><b>Smal</b><small>Alle kanten 1,27 cm</small></button>
+    <button data-cmd="margins" data-arg="2.54,1.91,2.54,1.91"><b>Gemiddeld</b><small>Boven/onder 2,54 · links/rechts 1,91 cm</small></button>
+    <button data-cmd="margins" data-arg="2.54,5.08,2.54,5.08"><b>Breed</b><small>Boven/onder 2,54 · links/rechts 5,08 cm</small></button>
+    <button data-cmd="margins" data-arg="2,2,2,2"><b>Gelijk</b><small>Alle kanten 2 cm</small></button>
+    <hr>
+    <button data-cmd="pageSetup">Aangepaste marges…</button>
+  </div>
+  <div id="m-orient">
+    <button data-cmd="orientation" data-arg="portrait"><span class="i">crop_portrait</span> Staand</button>
+    <button data-cmd="orientation" data-arg="landscape"><span class="i">crop_landscape</span> Liggend</button>
+  </div>
+  <div id="m-size">
+    <button data-cmd="pageSize" data-arg="A4"><b>A4</b><small>21 × 29,7 cm</small></button>
+    <button data-cmd="pageSize" data-arg="A5"><b>A5</b><small>14,8 × 21 cm</small></button>
+    <button data-cmd="pageSize" data-arg="A3"><b>A3</b><small>29,7 × 42 cm</small></button>
+    <button data-cmd="pageSize" data-arg="Letter"><b>Letter</b><small>21,59 × 27,94 cm</small></button>
+    <button data-cmd="pageSize" data-arg="Legal"><b>Legal</b><small>21,59 × 35,56 cm</small></button>
+    <button data-cmd="pageSize" data-arg="B5"><b>B5</b><small>17,6 × 25 cm</small></button>
+  </div>
+  <div id="m-columns">
+    <button data-cmd="columns" data-arg="1"><span class="i">crop_portrait</span> Eén kolom</button>
+    <button data-cmd="columns" data-arg="2"><span class="i">view_column_2</span> Twee kolommen</button>
+    <button data-cmd="columns" data-arg="3"><span class="i">view_column</span> Drie kolommen</button>
+    <button data-cmd="columns" data-arg="left"><span class="i">view_sidebar</span> Links smal</button>
+    <button data-cmd="columns" data-arg="right"><span class="i">view_sidebar</span> Rechts smal</button>
+  </div>
+  <div id="m-breaks">
+    <button data-cmd="pageBreak"><b>Pagina-einde</b><small>Volgende tekst begint op een nieuwe pagina</small></button>
+    <button data-cmd="columnBreak"><b>Kolomeinde</b><small>Tekst gaat verder in de volgende kolom</small></button>
+    <button data-cmd="lineBreak"><b>Regeleinde</b><small>Nieuwe regel binnen dezelfde alinea (Shift+Enter)</small></button>
+  </div>
+  <div id="m-toc">
+    <button data-cmd="insertToc" data-arg="3"><b>Automatische inhoudsopgave</b><small>Kop 1 t/m Kop 3</small></button>
+    <button data-cmd="insertToc" data-arg="2"><b>Beknopt</b><small>Alleen Kop 1 en Kop 2</small></button>
+    <hr>
+    <button data-cmd="removeToc">Inhoudsopgave verwijderen</button>
+  </div>
+  <div id="m-cite"></div>
+  <div id="m-recipients">
+    <button data-cmd="recipientsNew"><span class="i">edit</span> Nieuwe lijst typen…</button>
+    <button data-cmd="recipientsCsv"><span class="i">upload_file</span> Bestaande lijst gebruiken (CSV)…</button>
+    <button data-cmd="recipientsSample"><span class="i">list_alt</span> Voorbeeldlijst gebruiken</button>
+  </div>
+  <div id="m-mergefield"></div>
+  <div id="m-finish">
+    <button data-cmd="mergeToDoc"><span class="i">description</span> Afzonderlijke documenten bewerken…</button>
+    <button data-cmd="mergeToPrint"><span class="i">print</span> Documenten afdrukken…</button>
+  </div>
+  <div id="m-lang">
+    <button data-cmd="setLang" data-arg="nl-NL">Nederlands</button>
+    <button data-cmd="setLang" data-arg="en-GB">Engels (VK)</button>
+    <button data-cmd="setLang" data-arg="en-US">Engels (VS)</button>
+    <button data-cmd="setLang" data-arg="de-DE">Duits</button>
+    <button data-cmd="setLang" data-arg="fr-FR">Frans</button>
+    <button data-cmd="setLang" data-arg="es-ES">Spaans</button>
+  </div>
+  <div id="m-delcomment">
+    <button data-cmd="deleteComment">Opmerking verwijderen</button>
+    <button data-cmd="deleteAllComments">Alle opmerkingen verwijderen</button>
+    <button data-cmd="deleteResolved">Opgeloste opmerkingen verwijderen</button>
+  </div>
+  <div id="m-accept">
+    <button data-cmd="acceptChange">Accepteren en naar volgende</button>
+    <button data-cmd="acceptAll">Alle wijzigingen accepteren</button>
+    <button data-cmd="acceptAllStop">Alle wijzigingen accepteren en bijhouden stoppen</button>
+  </div>
+  <div id="m-reject">
+    <button data-cmd="rejectChange">Weigeren en naar volgende</button>
+    <button data-cmd="rejectAll">Alle wijzigingen weigeren</button>
+  </div>
+  <div id="m-tborders">
+    <button data-cmd="tableBorders" data-arg="all"><span class="i">border_all</span> Alle randen</button>
+    <button data-cmd="tableBorders" data-arg="outer"><span class="i">border_outer</span> Buitenranden</button>
+    <button data-cmd="tableBorders" data-arg="inner"><span class="i">border_inner</span> Binnenranden</button>
+    <button data-cmd="tableBorders" data-arg="horizontal"><span class="i">border_horizontal</span> Alleen horizontaal</button>
+    <button data-cmd="tableBorders" data-arg="none"><span class="i">border_clear</span> Geen randen</button>
+  </div>
+  <div id="m-tdelete">
+    <button data-cmd="deleteRow"><span class="i">table_rows</span> Rij verwijderen</button>
+    <button data-cmd="deleteCol"><span class="i">view_column</span> Kolom verwijderen</button>
+    <button data-cmd="deleteTable"><span class="i">delete</span> Tabel verwijderen</button>
+  </div>
+  <div id="m-tsort">
+    <button data-cmd="sortTable" data-arg="asc">Huidige kolom oplopend</button>
+    <button data-cmd="sortTable" data-arg="desc">Huidige kolom aflopend</button>
+  </div>
+  <div id="m-imgcolor" class="grid-menu filters">
+    <button data-cmd="imgFilter" data-arg="none">Origineel</button>
+    <button data-cmd="imgFilter" data-arg="grayscale(1)">Grijswaarden</button>
+    <button data-cmd="imgFilter" data-arg="sepia(1)">Sepia</button>
+    <button data-cmd="imgFilter" data-arg="contrast(1.4) saturate(1.2)">Levendig</button>
+    <button data-cmd="imgFilter" data-arg="brightness(1.3) contrast(.6) saturate(.5)">Vervaagd</button>
+    <button data-cmd="imgFilter" data-arg="brightness(1.2)">Lichter</button>
+    <button data-cmd="imgFilter" data-arg="brightness(.8)">Donkerder</button>
+    <button data-cmd="imgFilter" data-arg="invert(1)">Negatief</button>
+    <button data-cmd="imgFilter" data-arg="blur(2px)">Vervagen</button>
+  </div>
+  <div id="m-imgstyle">
+    <button data-cmd="imgStyle" data-arg="">Geen stijl</button>
+    <button data-cmd="imgStyle" data-arg="st-rounded">Afgeronde hoeken</button>
+    <button data-cmd="imgStyle" data-arg="st-shadow">Zachte schaduw</button>
+    <button data-cmd="imgStyle" data-arg="st-polaroid">Fotolijst</button>
+    <button data-cmd="imgStyle" data-arg="st-circle">Cirkel</button>
+    <button data-cmd="imgStyle" data-arg="st-tilt">Gekanteld</button>
+  </div>
+  <div id="m-imgborder">
+    <button data-cmd="imgBorder" data-arg="">Geen rand</button>
+    <button data-cmd="imgBorder" data-arg="1px solid #444">Dun</button>
+    <button data-cmd="imgBorder" data-arg="3px solid #444">Dik</button>
+    <button data-cmd="imgBorder" data-arg="3px solid var(--doc-accent)">Accentkleur</button>
+    <button data-cmd="imgBorder" data-arg="2px dashed #666">Gestreept</button>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/format.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/insert.js"></script>
+<script src="js/objects.js"></script>
+<script src="js/references.js"></script>
+<script src="js/review.js"></script>
+<script src="js/mailings.js"></script>
+<script src="js/docx.js"></script>
+<script src="js/file.js"></script>
+<script src="js/layout-extra.js"></script>
+<script src="js/references-extra.js"></script>
+<script src="js/mailings-extra.js"></script>
+<script src="js/review-extra.js"></script>
+<script src="js/view-extra.js"></script>
+<script src="js/file-extra.js"></script>
+<script src="js/autocorrect.js"></script>
+<script src="js/start-extra.js"></script>
+<script src="js/insert-extra.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/native.js"></script>
+<script src="js/gedeelde-map.js"></script>
+<script src="js/start-screen.js"></script>
+<script src="js/delen.js"></script>
+<script src="js/opslag.js"></script>
+<script src="js/veilig.js"></script>
+<script src="js/lint.js"></script>
+<script src="js/import-extra.js"></script>
+<script src="js/docx-import.js"></script>
+<script src="js/lang/en.js"></script>
+<script src="js/lang/en-inkt-2.js"></script>
+<script src="js/lang/en-inkt-3.js"></script>
+<script src="js/lang/en-inkt.js"></script>
+<script src="js/lang/en-inkt-tpl.js"></script>
+<script src="js/lang/en-inkt-4.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
