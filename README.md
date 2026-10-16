@@ -16,6 +16,8 @@ Both apps are made by **JJ van Schelven**, a 12-year-old developer from the Neth
 
 ## Installation
 
+**Step-by-step guide with troubleshooting: [INSTALL.md](INSTALL.md)** (also in Dutch).
+
 ### Option 1: Windows program (recommended)
 
 1. On this GitHub page, click the green **Code** button and choose **Download ZIP**.
