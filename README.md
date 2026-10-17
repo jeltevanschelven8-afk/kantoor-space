@@ -1,13 +1,14 @@
 # Kantoor Space: a free, open-source office suite
 
-Kantoor Space is a free, open-source alternative to commercial office software, for **Windows and Linux**. It consists of separate programs, each with its own download. There are two right now, and more are coming:
+Kantoor Space is a free, open-source alternative to commercial office software, for **Windows and Linux**. It consists of separate programs, each with its own download. There are three right now, and more are coming:
 
 | Program | What it is | Manual |
 |---|---|---|
 | **Inkt** | Word processor. Opens and saves .docx, with templates, styles, tables, pictures, a table of contents, footnotes, comments, track changes and mail merge. | [INKT.md](INKT.md) · [Nederlands](LEESMIJ.md) |
 | **Cel** | Spreadsheet. Opens and saves .xlsx, with 380+ functions, dynamic arrays, charts, PivotTables, conditional formatting and data validation. | [cel/README.md](cel/README.md) · [Nederlands](cel/LEESMIJ.md) |
+| **Podium** | Presentations. Opens and saves .pptx, with themes, slide masters, 150+ shapes, tables, charts, diagrams, animations, transitions (including Morph), a presenter view and video export. | [podium/README.md](podium/README.md) · [Nederlands](podium/LEESMIJ.md) |
 
-Both programs are made by **JJ van Schelven**, a 12-year-old developer from the Netherlands.
+All programs are made by a teenage developer from the Netherlands.
 
 - No account, no ads and no tracking. Your documents stay on your own computer.
 - Works offline. All fonts and libraries are included.
@@ -16,11 +17,11 @@ Both programs are made by **JJ van Schelven**, a 12-year-old developer from the 
 
 ## Download
 
-Get the programs from the **[Releases page](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest)**. Inkt and Cel are separate downloads, so you only take what you need.
+Get the programs from the **[Releases page](https://github.com/jeltevanschelven8-afk/kantoor-space/releases/latest)**. Inkt, Cel and Podium are separate downloads, so you only take what you need.
 
 | Your computer | Download |
 |---|---|
-| Windows 10 / 11 | `Inkt-…-windows.zip`, `Cel-…-windows.zip` |
+| Windows 10 / 11 | `Inkt-…-windows.zip`, `Cel-…-windows.zip`, `Podium-…-windows.zip` |
 | Ubuntu, Debian, Linux Mint, Pop!_OS | `…-linux-x64.deb` |
 | Fedora, openSUSE | `…-linux-x64.rpm` |
 | Arch, Manjaro, EndeavourOS, other Linux | `…-linux-x64.AppImage` or `…-linux-x64.tar.gz` |
@@ -51,12 +52,13 @@ kantoor-space/
 ├── index.html, js/, css/      Inkt (word processor)
 ├── Inkt.exe                   Inkt for Windows
 ├── cel/                       Cel (spreadsheet), same layout, with Cel.exe
-├── desktop/                   Builds Inkt and Cel for Linux (Electron)
+├── podium/                    Podium (presentations), same layout, with Podium.exe
+├── desktop/                   Builds Inkt, Cel and Podium for Linux (Electron)
 ├── programma/                 Source of the Windows program (C#, WebView2)
 ├── .github/workflows/         Builds all downloads automatically for each new version
 ├── vendor/, fonts/            Included libraries and fonts (no internet needed)
-├── js/lang/, cel/js/lang/     English translations of the interface
-├── test/, cel/test/           Stress tests
+├── js/lang/, */js/lang/       English translations of the interface
+├── test/, */test/             Stress tests
 ├── LICENSE                    MIT license
 └── DERDEN-LICENTIES.md        Licenses of third-party components
 ```
@@ -67,13 +69,14 @@ kantoor-space/
 - **Windows:** a small C# program (`programma/Launcher.cs`) shows the app in its own window using WebView2, the web engine built into Windows. Rebuild it with `programma/bouw.ps1`.
 - **Linux:** the same apps packaged with [Electron](https://www.electronjs.org) (`desktop/`). `node build.js` in that folder makes the AppImage, .deb, .rpm and .tar.gz files for x64 and ARM64. GitHub Actions does this automatically when a version tag such as `v1.0.0` is pushed.
 - **Sharing:** each program has a small built-in server for sharing links on your local network (C# on Windows, Node.js on Linux). Nothing goes to the internet.
-- **Storage:** documents are saved inside the program's own storage, with IndexedDB as a backup when that fills up. Use **File › Save As** for a .docx, .xlsx or PDF file.
-- **File formats:** .docx via JSZip and Mammoth, .xlsx via JSZip, plus PDF through the print dialog, CSV, HTML, Markdown and plain text.
+- **Storage:** documents are saved inside the program's own storage, with IndexedDB as a backup when that fills up. Use **File › Save As** for a .docx, .xlsx, .pptx or PDF file.
+- **File formats:** .docx via JSZip and Mammoth, .xlsx and .pptx via JSZip, plus PDF through the print dialog, CSV, HTML, Markdown and plain text. Podium also exports PNG, JPEG, SVG and video (MP4/WebM, encoded in the browser with WebCodecs).
 - **Languages:** the interface source is Dutch. `js/i18n.js` translates it to English at run time using the dictionaries in `js/lang/`. In English mode, Cel also uses English notation (`1,234.56`, `3/15/2026`, `=SUM(A1,A2)`).
-- **Tests:** `test/stress.html` (Inkt) and `cel/test/stress.html` (Cel) contain about 500 stress tests of input parsing, number formats, formulas, merging and the sharing API.
+- **No AI:** none of the programs contains AI or machine-learning features or libraries. Everything (spelling via the system spell checker, the accessibility checker, layout suggestions such as smart guides) works with fixed, deterministic rules.
+- **Tests:** `test/stress.html` (Inkt), `cel/test/stress.html` (Cel) and `podium/test/stress.html` (Podium) contain stress tests of input parsing, number formats, formulas, merging, file round trips and the sharing API.
 
 ## License
 
 MIT. See [LICENSE](LICENSE). Third-party components such as Electron, JSZip, Mammoth, KaTeX, Inter and Material Symbols are listed with their licenses in [DERDEN-LICENTIES.md](DERDEN-LICENTIES.md).
 
-*Kantoor Space, Inkt and Cel are independent projects and are not affiliated with Microsoft. Microsoft, Word and Excel are trademarks of Microsoft Corporation. .docx and .xlsx are open standards (ECMA-376).*
+*Kantoor Space, Inkt, Cel and Podium are independent projects and are not affiliated with Microsoft. Microsoft, Word, Excel and PowerPoint are trademarks of Microsoft Corporation. .docx, .xlsx and .pptx are open standards (ECMA-376).*
