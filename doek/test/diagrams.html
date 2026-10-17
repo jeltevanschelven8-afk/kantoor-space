@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Doek — diagrammen</title>
+<!-- Doek (gemaakt door JJ van Schelven) — losse testpagina voor js/diagrams.js.
+     Tekent elke indeling op 360×220 met eenvoudige eigen tekenfuncties: rect/roundRect/ellipse als SVG,
+     andere presets als gestippeld kader met de naam (de echte renderer gebruikt de vormenbibliotheek).
+     Opties in de adresregel: ?shapes=1 (benaderde presetvormen), ?n=7 (aantal items), ?kids=1 (met subitems),
+     ?empty=1 (lege tekst → '[Tekst]'), ?w=300&h=600 (maat), ?cat=list, ?only=basicCycle,orgChart, ?color=colorful1, ?look=intense, ?lang=en -->
+<style>
+  body { font: 13px/1.4 'Segoe UI', system-ui, sans-serif; margin: 16px; background: #f3f3f3; color: #222; }
+  h1 { font-size: 16px; margin: 0 0 6px; }
+  #sum { margin: 0 0 10px; font-weight: 600; }
+  #sum.bad { color: #c5221f; }
+  #icons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; color: #156082; }
+  #icons div { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 3px; line-height: 0; }
+  #grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .card { background: #fff; border: 1px solid #d0d0d0; border-radius: 6px; padding: 8px; }
+  .card h2 { font-size: 12px; margin: 0 0 6px; display: flex; gap: 8px; align-items: center; font-weight: 600; }
+  .card h2 small { color: #777; font-weight: 400; }
+  .card h2 .ic { color: #156082; line-height: 0; }
+  .card svg.dia { display: block; background: #fff; outline: 1px dashed #ccc; }
+  .card.over { border-color: #c5221f; }
+  .tx { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; line-height: 1.2; }
+  .tx p { margin: 0; overflow-wrap: normal; word-break: keep-all; }
+  .tx p + p { margin-top: 0.15em; }
+  .tx p.b { padding-left: 0.9em; text-indent: -0.9em; }
+  .tx.ovf { outline: 2px solid #c5221f; }
+</style>
+</head>
+<body>
+<h1>Doek — diagrammen (App.Diagrams)</h1>
+<div id="sum">Laden…</div>
+<div id="icons"></div>
+<div id="grid"></div>
+<script>window.App = {};</script>
+<script src="../js/lang/en-diagrams.js"></script>
+<script>
+  const Q = new URLSearchParams(location.search);
+  if (Q.get('lang') === 'en') App.t = (s) => (window.KANTOOR_DICT && window.KANTOOR_DICT[s]) || s;
+</script>
+<script src="../js/diagrams.js"></script>
+<script>
+'use strict';
+(() => {
+  const D = App.Diagrams, W = +Q.get('w') || 360, H = +Q.get('h') || 220, SHAPES = Q.get('shapes') === '1';
+  /* thema (zoals Office) en kleurvarianten */
+  const TH = { dk1: '#000000', lt1: '#ffffff', dk2: '#0e2841', lt2: '#e8e8e8', accent1: '#156082', accent2: '#e97132', accent3: '#196b24', accent4: '#0f9ed5', accent5: '#a02b93', accent6: '#4ea72e' };
+  TH.tx1 = TH.dk1; TH.bg1 = TH.lt1; TH.tx2 = TH.dk2; TH.bg2 = TH.lt2;
+  const hsl = (hex) => {
+    const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    let h = 0, s = 0;
+    if (d) { s = d / (1 - Math.abs(2 * l - 1)); h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return [h < 0 ? h + 360 : h, s, l];
+  };
+  const hex = ([h, s, l]) => {
+    const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return '#' + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+  };
+  const col = (ref) => {
+    if (!ref) return 'none';
+    if (ref[0] === '#') return ref;
+    const [k, v] = ref.split('/'), base = TH[k] || '#ff00ff';
+    if (!v) return base;
+    const p = +v.slice(1) / 100, [h, s, l] = hsl(base);
+    return hex([h, s, v[0] === 'l' ? l * (1 - p) + p : l * (1 - p)]);
+  };
+  /* meten zoals App.measureRun */
+  const cv = document.createElement('canvas').getContext('2d');
+  const measure = (t, sz, b) => { cv.font = `${b ? 700 : 400} ${sz * 4 / 3}px 'Segoe UI', sans-serif`; return cv.measureText(t).width; };
+  /* voorbeeldtekst */
+  const WORDS = ['Plannen', 'Ontwerpen', 'Bouwen', 'Testen', 'Opleveren', 'Evalueren', 'Onderzoek', 'Klantwensen', 'Budget', 'Team', 'Risico', 'Resultaat'];
+  const SUB = ['Doelen', 'Planning', 'Middelen', 'Overleg'];
+  const fill = (items) => { let k = 0, s = 0; return items.map((it) => Object.assign(it, { text: Q.get('empty') === '1' ? '' : it.lvl === 0 ? WORDS[k++ % WORDS.length] : SUB[s++ % SUB.length] + (it.asst ? ' (assistent)' : '') })); };
+  const itemsFor = (id) => {
+    const n = +Q.get('n');
+    if (!n) return fill(D.sample(id));
+    const a = [];
+    for (let i = 0; i < n; i++) { a.push({ id: 'i' + a.length, lvl: 0 }); if (Q.get('kids') === '1') for (let k = 0; k < (i % 3); k++) a.push({ id: 'i' + a.length, lvl: 1 }); }
+    return fill(a);
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, at = {}, parent) => { const e = document.createElementNS(NS, tag); Object.entries(at).forEach(([k, v]) => v != null && e.setAttribute(k, v)); if (parent) parent.appendChild(e); return e; };
+  const draw = (svg, s) => {
+    const g = el('g', {}, svg);
+    let tr = `translate(${s.x} ${s.y})`;
+    if (s.rot) tr += ` rotate(${s.rot} ${s.w / 2} ${s.h / 2})`;
+    if (s.flipH || s.flipV) tr += ` translate(${s.flipH ? s.w : 0} ${s.flipV ? s.h : 0}) scale(${s.flipH ? -1 : 1} ${s.flipV ? -1 : 1})`;
+    g.setAttribute('transform', tr);
+    const paint = { fill: col(s.fill), 'fill-opacity': s.alpha != null ? s.alpha : null, stroke: s.line ? col(s.line) : 'none', 'stroke-width': s.line ? (s.lineW || 1) * 4 / 3 : null };
+    if (s.shadow) g.setAttribute('filter', 'url(#sh)');
+    if (s.geom === 'line') {
+      const p = s.pts || [[s.x, s.y], [s.x + s.w, s.y + s.h]];
+      el('line', { x1: p[0][0], y1: p[0][1], x2: p[1][0], y2: p[1][1], stroke: col(s.line), 'stroke-width': (s.lineW || 1) * 4 / 3 }, svg);
+      svg.removeChild(g);
+    } else if (s.geom === 'rect') el('rect', Object.assign({ width: s.w, height: s.h }, paint), g);
+    else if (s.geom === 'roundRect') el('rect', Object.assign({ width: s.w, height: s.h, rx: Math.min(s.w, s.h) * ((s.adj && s.adj.adj) || 16667) / 1e5 }, paint), g);
+    else if (s.geom === 'ellipse') el('ellipse', Object.assign({ cx: s.w / 2, cy: s.h / 2, rx: s.w / 2, ry: s.h / 2 }, paint), g);
+    else if (SHAPES) el('path', Object.assign({ d: D._geomPath(s.geom, s.w, s.h, s.adj) }, paint), g);
+    else {
+      el('rect', { width: s.w, height: s.h, fill: s.fill ? col(s.fill) : 'none', 'fill-opacity': 0.25, stroke: col(s.fill || s.line || 'accent1'), 'stroke-dasharray': '4 3' }, g);
+      const t = el('text', { x: 3, y: 10, 'font-size': 9, fill: '#555' }, g); t.textContent = s.geom;
+    }
+    if (s.text && s.text.length) {
+      const ins = s.ins || { l: 0, t: 0, r: 0, b: 0 }, fo = el('foreignObject', { x: s.x + ins.l, y: s.y + ins.t, width: Math.max(1, s.w - ins.l - ins.r), height: Math.max(1, s.h - ins.t - ins.b) }, svg);
+      const d = document.createElement('div');
+      d.className = 'tx';
+      d.style.justifyContent = { t: 'flex-start', ctr: 'center', b: 'flex-end' }[s.vAlign] || 'center';
+      d.style.color = col(s.color);
+      d.style.textAlign = s.align === 'l' ? 'left' : 'center';
+      s.text.forEach((p) => {
+        const q = document.createElement('p');
+        q.style.fontSize = ((p.sz || s.sz) * 4 / 3) + 'px';
+        if (p.bullet) { q.className = 'b'; q.style.textAlign = 'left'; q.style.marginLeft = (p.ind || 0) * 0.8 + 'em'; }
+        if (p.ph) q.style.opacity = 0.7;
+        q.textContent = (p.bullet ? '• ' : '') + p.t;
+        d.appendChild(q);
+      });
+      fo.appendChild(d);
+    }
+  };
+  const only = (Q.get('only') || '').split(',').filter(Boolean), cats = (Q.get('cat') || '').split(',').filter(Boolean);
+  const list = D.LAYOUTS.filter((l) => (!only.length || only.includes(l.id)) && (!cats.length || cats.includes(l.cat)));
+  const icons = document.getElementById('icons'), grid = document.getElementById('grid');
+  D.LAYOUTS.forEach((l) => { const d = document.createElement('div'); d.title = l.name; d.innerHTML = l.icon; icons.appendChild(d); });
+  let shapes = 0, over = 0;
+  list.forEach((l) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const cname = (D.CATS.find((c) => c.id === l.cat) || {}).name;
+    card.innerHTML = `<h2><span class="ic">${l.icon}</span><span>${App.t ? App.t(l.name) : l.name}<br><small>${l.id} · ${App.t ? App.t(cname) : cname}</small></span></h2>`;
+    const svg = el('svg', { class: 'dia', width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+    const defs = el('defs', {}, svg), f = el('filter', { id: 'sh', x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
+    el('feDropShadow', { dx: 0, dy: 2, stdDeviation: 2, 'flood-opacity': 0.3 }, f);
+    const sh = D.layout({ layout: l.id, items: itemsFor(l.id), color: Q.get('color') || 'accent1', look: Q.get('look') || 'flat' }, W, H, { measure });
+    sh.forEach((s) => draw(svg, s));
+    shapes += sh.length;
+    card.appendChild(svg);
+    grid.appendChild(card);
+    card._svg = svg;
+  });
+  // tekst die niet past rood omranden
+  requestAnimationFrame(() => {
+    const dump = [];
+    document.querySelectorAll('.tx').forEach((d) => {
+      // inhoud meten via de alinea's (scrollHeight is onbetrouwbaar bij uitlijning onderaan)
+      const ps = [...d.children], top = Math.min(...ps.map((p) => p.getBoundingClientRect().top)), bot = Math.max(...ps.map((p) => p.getBoundingClientRect().bottom));
+      const bad = bot - top > d.getBoundingClientRect().height + 1 || ps.some((p) => p.scrollWidth > p.clientWidth + 1);
+      if (bad) { d.classList.add('ovf'); over++; d.closest('.card').classList.add('over'); }
+      if (Q.get('dump') === '1') dump.push(`${bad ? 'OVER' : 'ok'} ${d.closest('.card').querySelector('small').textContent} box ${d.clientWidth}x${d.clientHeight} content ${d.scrollWidth}x${d.scrollHeight} ${[...d.children].map((p) => p.textContent + '@' + p.style.fontSize).join(' | ')}`);
+    });
+    if (dump.length) { const pre = document.createElement('pre'); pre.id = 'dump'; pre.textContent = dump.join('\n'); document.body.appendChild(pre); }
+    const sum = document.getElementById('sum');
+    sum.textContent = `${list.length} indelingen · ${shapes} vormen · ${W}×${H} · ${over} tekstvakken lopen over`;
+    sum.className = over ? 'bad' : '';
+    document.title = 'klaar';
+  });
+})();
+</script>
+</body>
+</html>

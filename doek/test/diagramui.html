@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Doek — diagrammen in de app (test)</title>
+<!-- Doek (gemaakt door JJ van Schelven) — test van js/diagramui.js in de echte app.
+     Openen: start Doek (start-doek.bat) en ga naar http://localhost:8082/test/diagramui.html
+     Links het verslag, rechts de app met een nieuwe, lege presentatie; automatisch opslaan staat in de test uit.
+     Staat diagramui.js nog niet in index.html, dan laadt de test het bestand zelf in de app.
+     ?stop=dialog | pane | menu laat de app na de test in die toestand staan (voor een schermafdruk). -->
+<style>
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+  #log { overflow: auto; padding: 12px; border-right: 1px solid #ccc; }
+  iframe { width: 100%; height: 100%; border: 0; }
+  .ok { color: #137333; } .fail { color: #c5221f; font-weight: 600; }
+  pre { white-space: pre-wrap; margin: 0 0 2px; font-size: 12px; }
+  #sum { position: sticky; top: 0; background: #fff; padding: 6px 0; border-bottom: 1px solid #ddd; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="log"><div id="sum">Doek wordt geladen…</div></div>
+<iframe id="app" src="../index.html#diagramtest"></iframe>
+<script>
+'use strict';
+const logEl = document.getElementById('log'), sumEl = document.getElementById('sum'), frame = document.getElementById('app');
+const Q = new URLSearchParams(location.search);
+const RESULTS = window.RESULTS = [];
+let W, A, doc;
+const line = (cls, txt) => { const p = document.createElement('pre'); p.className = cls; p.textContent = txt; logEl.appendChild(p); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const until = async (fn, ms = 5000, what = '') => {
+  const t0 = performance.now();
+  for (;;) { let v = null; try { v = fn(); } catch (e) { v = null; } if (v) return v; if (performance.now() - t0 > ms) throw new Error('wachten mislukt: ' + what); await wait(25); }
+};
+const frames = () => new Promise((r) => W.requestAnimationFrame(() => W.requestAnimationFrame(r)));
+// één test: fn gooit een fout bij een mislukte controle
+const test = async (name, fn) => {
+  let ok = true, note = '';
+  try { await fn(); } catch (e) { ok = false; note = e && e.message || String(e); }
+  RESULTS.push({ name, ok, note });
+  line(ok ? 'ok' : 'fail', `${ok ? '✓' : '✗'} ${name}${note ? '  — ' + note : ''}`);
+  const fails = RESULTS.filter((r) => !r.ok).length;
+  sumEl.textContent = `${RESULTS.length} tests · ${fails} mislukt`; sumEl.className = fails ? 'fail' : 'ok';
+};
+const check = (cond, msg) => { if (!cond) throw new Error(msg); };
+const dia = () => { const o = A.sel1(); return o && o.type === 'diagram' ? o : null; };
+const items = () => dia().dia.items;
+const lvls = () => items().map((i) => i.lvl).join('');
+const texts = () => items().map((i) => i.text).join(',');
+const key = (el, k, o = {}) => { const e = new W.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o }); el.dispatchEvent(e); return e; };
+const typeInto = (inp, v, caret) => { inp.focus(); inp.value = v; const c = caret == null ? v.length : caret; inp.setSelectionRange(c, c); inp.dispatchEvent(new W.Event('input', { bubbles: true })); };
+const rows = () => [...doc.querySelectorAll('#pane .pd-dt-list input[data-id]')];
+const active = () => doc.activeElement;
+const valid = (a) => a.every((it, i) => it.id && Number.isInteger(it.lvl) && it.lvl >= 0 && it.lvl <= (i ? a[i - 1].lvl + 1 : 0));
+const setItems = (arr) => A.run(() => { dia().dia.items = arr.map(([t, l], k) => ({ id: 'tt' + k + Math.random().toString(36).slice(2, 6), text: t, lvl: l })); });
+const setCurItem = (k) => { const o = dia(); A.state.diaItem = o.dia.items[k].id; A.state.diaItemOf = o.id; };
+const mouse = (el, type) => { const r = el.getBoundingClientRect(); el.dispatchEvent(new W.MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, detail: 1 })); };
+const menuBtn = (name) => doc.querySelector(`[data-menu="${name}"]`) || { x: 300, y: 200 };
+
+(async () => {
+  await until(() => frame.contentWindow && frame.contentWindow.App && frame.contentWindow.App.pres && frame.contentDocument.readyState === 'complete', 25000, 'app geladen');
+  W = frame.contentWindow; A = W.App; doc = frame.contentDocument;
+  A.settings.autosave = false;
+  if (!A.fillDiagramGallery) await new Promise((res, rej) => { const s = doc.createElement('script'); s.src = '../js/diagramui.js?' + Date.now(); s.onload = res; s.onerror = () => rej(new Error('diagramui.js niet geladen')); doc.body.appendChild(s); });
+  if (doc.querySelector('#backstage') && A.closeBackstage) A.closeBackstage();
+  await wait(100);
+
+  await test('Dialoog: categorie, tegel, voorbeeld en OK voegt gecentreerd in', async () => {
+    A.select([]);
+    A.exec('diagramDialog');
+    const dd = await until(() => doc.querySelector('.pd-dd'), 3000, 'dialoog');
+    check(dd.querySelectorAll('[data-cat]').length === 8, 'acht categorieën verwacht');
+    check(dd.querySelectorAll('[data-lay]').length === A.Diagrams.LAYOUTS.length, 'Alle toont niet alle indelingen');
+    dd.querySelector('[data-cat="process"]').click();
+    check(dd.querySelectorAll('[data-lay]').length === A.Diagrams.LAYOUTS.filter((l) => l.cat === 'process').length, 'categorie Proces niet gefilterd');
+    dd.querySelector('[data-lay="basicChevronProcess"]').click();
+    check(dd.querySelector('.pd-dd-name').textContent === A.t('Proces met punthaken'), 'naam in het voorbeeld klopt niet');
+    check(dd.querySelector('.pd-dd-prev svg'), 'geen voorbeeld');
+    doc.querySelector('.dialog .btn.primary').click();
+    const o = await until(dia, 2000, 'diagram geselecteerd');
+    const P = A.pres.size;
+    check(o.dia.layout === 'basicChevronProcess' && o.dia.items.length === 3, 'indeling of items onjuist');
+    check(Math.abs(o.x + o.w / 2 - P.w / 2) < 1 && Math.abs(o.w - P.w * 2 / 3) < 1, 'niet gecentreerd op 2/3 van de breedte');
+    await frames();
+    check(A.state.pane === 'diatext' && rows().length === 3, 'tekstvenster niet geopend met drie regels');
+    check(A.context.diagramDesign, 'tabblad Diagramontwerp niet actief');
+  });
+  await test('Dialoog: dubbelklik vervangt een lege placeholder', async () => {
+    A.exec('newSlide');
+    await wait(60);
+    const ph = A.cur().objs.find((x) => x.ph && /^(obj|body)$/.test(x.ph.type));
+    check(ph, 'geen inhoudsplaceholder op de nieuwe dia');
+    const b = A.box(ph, A.cur());
+    A.select([ph.id]);
+    A.exec('diagramDialog', ph.id);
+    const dd = await until(() => doc.querySelector('.pd-dd'), 3000, 'dialoog');
+    dd.querySelector('[data-cat="cycle"]').click();
+    dd.querySelector('[data-lay="basicCycle"]').dispatchEvent(new W.MouseEvent('dblclick', { bubbles: true }));
+    const o = await until(dia, 2000, 'diagram');
+    check(!A.cur().objs.some((x) => x.id === ph.id), 'placeholder is niet vervangen');
+    check(Math.abs(o.x - b.x) < 0.5 && Math.abs(o.w - b.w) < 0.5 && o.dia.layout === 'basicCycle', 'diagram niet op de plek van de placeholder');
+  });
+  await test('Huidig item: klik op een vorm in het diagram', async () => {
+    const o = dia(), it = o.dia.items[1];
+    await frames();
+    const el = await until(() => doc.querySelector(`#stage-slide .ob.diagram[data-id="${o.id}"] [data-item="${it.id}"]`), 2000, 'vorm van item 2');
+    mouse(el, 'mousedown'); doc.dispatchEvent(new W.MouseEvent('mouseup', { bubbles: true }));
+    await frames(); await wait(30);
+    check(A.state.diaItem === it.id && A.sel1() && A.sel1().id === o.id, 'item niet het huidige');
+    check(doc.querySelector('#overlay .pd-dia-hi-box'), 'geen markering op het werkvlak');
+    check(doc.querySelector('#pane .pd-dt-row.cur') && doc.querySelector('#pane .pd-dt-row.cur').dataset.id === it.id, 'regel in het tekstvenster niet gemarkeerd');
+  });
+  await test('Vorm toevoegen erna/ervoor/erboven/eronder met ongedaan maken', async () => {
+    setItems([['A', 0], ['B', 0], ['C', 0]]); setCurItem(1);
+    A.exec('diaAdd', 'after');
+    check(texts() === 'A,B,,C' && A.state.diaItem === items()[2].id, 'erna: ' + texts());
+    A.history.undo(); check(dia() && texts() === 'A,B,C', 'ongedaan maken: ' + (dia() ? texts() : 'geen diagram'));
+    A.history.redo(); check(texts() === 'A,B,,C', 'opnieuw: ' + texts());
+    setItems([['A', 0], ['B', 0], ['C', 0]]); setCurItem(1);
+    A.exec('diaAdd', 'below'); check(lvls() === '0010' && texts() === 'A,B,,C', 'eronder: ' + lvls());
+    setItems([['A', 0], ['B', 0], ['C', 0]]); setCurItem(1);
+    A.exec('diaAdd', 'above'); check(lvls() === '0010' && texts() === 'A,,B,C', 'erboven: ' + texts() + ' ' + lvls());
+    setItems([['A', 0], ['B', 0], ['C', 0]]); setCurItem(1);
+    A.exec('diaAdd', 'before'); check(texts() === 'A,,B,C' && lvls() === '0000' && valid(items()), 'ervoor: ' + texts());
+  });
+  await test('Promoveren, degraderen en verplaatsen (met ongedaan maken)', async () => {
+    setItems([['A', 0], ['B', 0], ['C', 0]]); setCurItem(1);
+    A.exec('diaLevel', '1'); check(lvls() === '010', 'degraderen: ' + lvls());
+    A.exec('diaLevel', '-1'); check(lvls() === '000', 'promoveren: ' + lvls());
+    A.exec('diaMove', '-1'); check(texts() === 'B,A,C', 'omhoog: ' + texts());
+    A.exec('diaMove', '1'); check(texts() === 'A,B,C', 'omlaag: ' + texts());
+    A.exec('diaMove', '-1'); A.history.undo(); check(texts() === 'A,B,C', 'ongedaan maken: ' + texts());
+  });
+  await test('Delete verwijdert alleen het huidige item; Esc laat het los', async () => {
+    setItems([['A', 0], ['B', 0], ['B1', 1], ['C', 0]]); setCurItem(1);
+    A.select([dia().id]); doc.body.focus();
+    key(doc.body, 'Delete');
+    check(dia() && texts() === 'A,B1,C' && lvls() === '000', 'na Delete: ' + (dia() ? texts() + ' ' + lvls() : 'diagram weg'));
+    setCurItem(0); key(doc.body, 'Escape');
+    check(A.state.diaItem === null && dia(), 'Esc liet het item niet los of deselecteerde het diagram');
+  });
+  await test('Tekstvenster: typen, Enter, Tab, Shift+Tab, Backspace, Delete, pijltjes', async () => {
+    setItems([['', 0], ['', 0]]); setCurItem(0);
+    A.exec('diaText'); await frames();
+    let r = rows(); check(r.length === 2, 'twee regels verwacht');
+    typeInto(r[0], 'Alpha'); check(items()[0].text === 'Alpha', 'tekst niet in het model');
+    await frames(); await frames();
+    check(doc.querySelector('#stage-slide').textContent.includes('Alpha'), 'tekst niet in het diagram');
+    key(r[0], 'Enter'); await frames(); await frames();
+    check(items().length === 3 && rows()[1] === active(), 'Enter maakte geen nieuwe regel met focus');
+    typeInto(active(), 'Beta'); key(active(), 'Tab'); await frames(); await frames();
+    check(lvls() === '010' && active().value === 'Beta', 'Tab degradeerde niet: ' + lvls());
+    key(active(), 'Tab', { shiftKey: true }); await frames(); await frames();
+    check(lvls() === '000', 'Shift+Tab promoveerde niet: ' + lvls());
+    key(active(), 'Enter'); await frames(); await frames();
+    check(items().length === 4 && active().value === '', 'tweede Enter');
+    key(active(), 'Backspace'); await frames(); await frames();
+    check(items().length === 3 && active().value === 'Beta', 'Backspace op lege regel: ' + texts());
+    key(active(), 'ArrowUp'); check(active().value === 'Alpha', 'pijl omhoog');
+    active().setSelectionRange(2, 2); key(active(), 'Enter'); await frames(); await frames();
+    check(texts().startsWith('Al,pha,Beta'), 'splitsen: ' + texts());
+    active().setSelectionRange(0, 0); key(active(), 'Backspace'); await frames(); await frames();
+    check(texts().startsWith('Alpha,Beta'), 'samenvoegen: ' + texts());
+    active().setSelectionRange(5, 5); key(active(), 'Delete'); await frames(); await frames();
+    check(texts().startsWith('AlphaBeta'), 'Delete aan het eind: ' + texts());
+    A.history.undo(); await frames(); check(texts().startsWith('Alpha,Beta'), 'ongedaan maken samenvoegen: ' + texts());
+    key(rows()[0], 'ArrowDown', { altKey: true }); await frames(); await frames();
+    check(texts().startsWith('Beta,Alpha'), 'Alt+omlaag: ' + texts());
+    typeInto(rows()[0], 'Gamma'); await wait(850);
+    A.history.undo(); await frames();
+    check(items()[0].text !== 'Gamma', 'typen niet als één stap ongedaan te maken');
+  });
+  await test('Converteren naar vormen en naar tekst', async () => {
+    setItems([['Een', 0], ['Twee', 1], ['Drie', 0]]);
+    const o = dia(), n = A.diagramObjs(o, o.w, o.h, { mode: 'edit', noPrompt: true }).length, id = o.id;
+    A.exec('diaConvert', 'shapes');
+    const g = A.sel1();
+    check(g && g.type === 'group' && g.objs.length === n && g.cw === o.w, 'groep met ' + n + ' vormen verwacht');
+    check(g.objs.every((c) => !('_item' in c) && !('_label' in c) && c.id && c.name), 'kinderen niet opgeschoond');
+    check(new Set(g.objs.map((c) => c.id)).size === n, 'id\'s niet uniek');
+    A.history.undo(); check(A.obj(id) && A.obj(id).type === 'diagram', 'ongedaan maken herstelt het diagram niet');
+    A.select([id]); A.exec('diaConvert', 'text');
+    const t = A.sel1();
+    check(t && t.txbox && t.text.paras.length === 3 && t.text.paras.map((p) => p.lvl).join('') === '010', 'tekstvak met drie alinea\'s verwacht');
+    A.history.undo(); A.select([id]);
+  });
+  await test('Tekst omzetten in een diagram (Start › Converteren naar diagram)', async () => {
+    let tb;
+    A.run(() => { tb = A.newObj('shape', { geom: 'rect', txbox: true, x: 100, y: 120, w: 500, h: 300, text: { paras: [{ runs: [{ t: 'Een' }] }, { runs: [{ t: 'Twee' }], lvl: 1 }, { runs: [{ t: '' }] }, { runs: [{ t: 'Drie' }] }] } }); A.addObj(tb); });
+    A.select([tb.id]);
+    const m = A.openMenu('m-todiagram', menuBtn('m-todiagram'));
+    check(m && m.querySelectorAll('[data-cmd="textToDiagram"]').length === 16 && m.querySelector('.pd-more'), 'menu met 16 indelingen en Meer… verwacht');
+    m.querySelector('[data-arg="basicBlockList"]').click();
+    const o = await until(dia, 2000, 'diagram');
+    check(o.dia.layout === 'basicBlockList' && texts() === 'Een,Twee,Drie' && lvls() === '010', 'items: ' + texts() + ' ' + lvls());
+    check(!A.obj(tb.id) && o.x === 100 && o.w === 500, 'tekstvak niet vervangen');
+    A.history.undo(); check(A.obj(tb.id), 'ongedaan maken herstelt het tekstvak niet');
+    A.history.redo();
+  });
+  await test('Galerie en menu\'s: indelingen, kleuren, stijlen, vorm toevoegen, converteren', async () => {
+    const o = await until(dia, 1000, 'diagram');
+    A.fillDiagramGallery();
+    const g = doc.querySelector('#g-dialayouts');
+    check(g && g.querySelectorAll('.pd-dchip').length === A.Diagrams.LAYOUTS.filter((l) => l.cat === 'list').length && g.querySelector('.pd-dchip.on'), 'galerie toont de lijst-indelingen niet');
+    g.querySelector('[data-arg="stackedList"]').click(); check(dia().dia.layout === 'stackedList', 'galerieknop werkt niet');
+    let m = A.openMenu('m-dialayouts', menuBtn('m-dialayouts'));
+    check(m.querySelectorAll('.pd-dchip').length === A.Diagrams.LAYOUTS.length && m.querySelectorAll('.menu-title').length === 7, 'alle indelingen per categorie');
+    A.closePopup();
+    m = A.openMenu('m-diacolors', menuBtn('m-diacolors'));
+    check(m.querySelectorAll('[data-cmd="diaColor"]').length === A.Diagrams.COLORS.length, 'kleuren');
+    m.querySelector('[data-arg="colorful1"]').click(); check(dia().dia.color === 'colorful1', 'kleur niet toegepast');
+    m = A.openMenu('m-dialooks', menuBtn('m-dialooks'));
+    check(m.querySelectorAll('[data-cmd="diaLook"] svg').length === 4, 'vier stijlen met voorbeeld');
+    m.querySelector('[data-arg="intense"]').click(); check(dia().dia.look === 'intense', 'stijl niet toegepast');
+    m = A.openMenu('m-diaadd', menuBtn('m-diaadd'));
+    check(m.querySelectorAll('button').length === 5 && m.querySelector('[data-arg="assistant"]').disabled, 'assistent hoort alleen bij een organigram');
+    A.closePopup();
+    m = A.openMenu('m-diaconvert', menuBtn('m-diaconvert'));
+    check(m.querySelectorAll('[data-cmd="diaConvert"]').length === 2, 'converteren');
+    A.closePopup();
+    check(o.id === dia().id, 'ander diagram geselecteerd');
+  });
+  await test('Organigram: assistent toevoegen, indeling wijzigen via Meer…', async () => {
+    A.exec('diaLayout', 'orgChart');
+    setItems([['Baas', 0], ['Team', 1]]); setCurItem(0);
+    A.exec('diaAdd', 'assistant');
+    check(items()[1].asst === true && items()[1].lvl === 1 && items().length === 3, 'assistent: ' + JSON.stringify(items().map((i) => [i.lvl, !!i.asst])));
+    A.exec('diagramDialog', 'change');
+    const dd = await until(() => doc.querySelector('.pd-dd'), 3000, 'dialoog');
+    check(dd.querySelector('[data-cat="hierarchy"].on') && dd.querySelector('[data-lay="orgChart"].on'), 'huidige indeling niet gekozen');
+    dd.querySelector('[data-lay="hierarchy"]').click();
+    doc.querySelector('.dialog .btn.primary').click();
+    check(dia().dia.layout === 'hierarchy', 'indeling niet gewijzigd');
+  });
+
+  // toestand voor een schermafdruk
+  const stop = Q.get('stop');
+  if (stop === 'dialog') { A.exec('diagramDialog'); await until(() => doc.querySelector('.pd-dd'), 3000); doc.querySelector('[data-cat="cycle"]').click(); }
+  if (stop === 'pane') { setItems([['Plannen', 0], ['Doelen', 1], ['Bouwen', 0], ['Testen', 0]]); setCurItem(2); A.exec('diaLayout', 'verticalBulletList'); A.exec('diaText'); A.showTab('diagramDesign'); }
+  if (stop === 'menu') { A.showTab('diagramDesign'); A.openMenu('m-dialayouts', menuBtn('m-dialayouts')); }
+  document.title = 'klaar';
+})().catch((e) => { line('fail', 'Test afgebroken: ' + (e && e.stack || e)); document.title = 'klaar'; });
+</script>
+</body>
+</html>

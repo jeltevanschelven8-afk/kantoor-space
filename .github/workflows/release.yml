@@ -1,4 +1,4 @@
-# Kantoor Space — bouwt de downloads voor Inkt en Cel en zet ze onder Releases.
+# Kantoor Space — bouwt de downloads voor Inkt, Cel en Doek en zet ze onder Releases.
 # Start automatisch bij een nieuwe versie-tag (bijv. v1.0.0), of met de hand via Actions › Build programs › Run workflow
 # (dan alleen bouwen, zonder release).
 name: Build programs
@@ -26,7 +26,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: desktop
         run: npm version --no-git-tag-version --allow-same-version "${GITHUB_REF_NAME#v}"
-      - name: Build Inkt and Cel
+      - name: Build Inkt, Cel and Doek
         working-directory: desktop
         run: |
           npm ci
@@ -45,16 +45,19 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Pack Inkt and Cel
+      - name: Pack Inkt, Cel and Doek
         run: |
           V="${GITHUB_REF_NAME#v}"; case "$V" in [0-9]*) ;; *) V="dev";; esac
-          mkdir -p out/Inkt out/Cel
+          mkdir -p out/Inkt out/Cel out/Doek
           cp -r index.html manifest.webmanifest sw.js Inkt.exe Microsoft.Web.WebView2.*.dll runtimes js css fonts vendor icons \
                 maak-snelkoppelingen.ps1 LICENSE DERDEN-LICENTIES.md INSTALL.md INKT.md LEESMIJ.md out/Inkt/
           (cd cel && cp -r index.html manifest.webmanifest sw.js Cel.exe Microsoft.Web.WebView2.*.dll runtimes js css fonts vendor icons \
                 maak-snelkoppelingen.ps1 README.md LEESMIJ.md ../out/Cel/)
           cp LICENSE DERDEN-LICENTIES.md INSTALL.md out/Cel/
-          (cd out && zip -qr "Inkt-$V-windows.zip" Inkt && zip -qr "Cel-$V-windows.zip" Cel)
+          (cd doek && cp -r index.html manifest.webmanifest sw.js Doek.exe Microsoft.Web.WebView2.*.dll runtimes js css fonts vendor icons \
+                maak-snelkoppelingen.ps1 README.md LEESMIJ.md ../out/Doek/)
+          cp LICENSE DERDEN-LICENTIES.md INSTALL.md out/Doek/
+          (cd out && zip -qr "Inkt-$V-windows.zip" Inkt && zip -qr "Cel-$V-windows.zip" Cel && zip -qr "Doek-$V-windows.zip" Doek)
       - uses: actions/upload-artifact@v4
         with:
           name: windows

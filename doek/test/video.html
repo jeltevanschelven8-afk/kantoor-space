@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doek — test video.js</title>
+<style>
+  body { font: 14px/1.45 system-ui, sans-serif; margin: 20px; color: #222; background: #fff; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  pre { background: #f4f4f4; padding: 8px 10px; border-radius: 6px; white-space: pre-wrap; }
+  table { border-collapse: collapse; margin: 12px 0; }
+  td, th { padding: 3px 10px; border-bottom: 1px solid #e4e4e4; text-align: left; vertical-align: top; }
+  .PASS { color: #107c41; font-weight: 600; } .FAIL { color: #c00000; font-weight: 600; } .SKIP { color: #888; font-weight: 600; }
+  #media video { width: 200px; margin: 4px; border: 1px solid #ccc; vertical-align: top; }
+  #sum { font-size: 16px; font-weight: 600; margin: 6px 0; }
+</style>
+</head>
+<body>
+<h1>Doek — App.Video</h1>
+<p>Beelden coderen met WebCodecs, verpakken als WebM/MP4 met de eigen muxers, en daarna afspelen, zoeken en controleren.</p>
+<div id="sum">Bezig…</div>
+<pre id="support"></pre>
+<table><thead><tr><th>Test</th><th>Uitslag</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table>
+<div id="media"></div>
+<script>window.App = {};</script>
+<script src="../js/video.js"></script>
+<script>
+'use strict';
+/* ---------- Hulpjes ---------- */
+const $ = (s) => document.querySelector(s);
+const checks = [];
+const check = (test, ok, info = '') => {
+  const status = ok === null ? 'SKIP' : ok ? 'PASS' : 'FAIL';
+  checks.push({ test, status, info: String(info) });
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td></td><td></td><td></td>';
+  tr.cells[0].textContent = test; tr.cells[1].textContent = status; tr.cells[1].className = status; tr.cells[2].textContent = info;
+  $('#rows').appendChild(tr);
+  return !!ok;
+};
+const FILES = window.FILES = {};   // gemaakte bestanden (Blobs), om eventueel te bekijken
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const within = (p, ms, what) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error('time-out: ' + what)), ms))]);
+const f2 = (x) => String(Math.round(x * 100) / 100);
+
+// Testbeeld: bewegend kleurverloop, schuivende balk en een beeldteller
+const draw = (ctx, w, h, t, i) => {
+  const hue = (t * 60) % 360;
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, `hsl(${hue},80%,50%)`);
+  g.addColorStop(1, `hsl(${(hue + 120) % 360},80%,35%)`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(((t / 3) % 1) * w - w * 0.02, 0, w * 0.04, h);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.round(h * 0.18)}px sans-serif`; ctx.fillText('Beeld ' + i, w / 2, h / 2);
+  ctx.font = `${Math.round(h * 0.07)}px sans-serif`; ctx.fillText(t.toFixed(2) + ' s', w / 2, h * 0.75);
+};
+// Sinustoon van 440 Hz: één Float32Array per kanaal
+const sine = (start, n, sr, ch) => Array.from({ length: ch }, () => {
+  const p = new Float32Array(n);
+  for (let k = 0; k < n; k++) p[k] = 0.5 * Math.sin(2 * Math.PI * 440 * (start + k) / sr);
+  return p;
+});
+// Pixels van een bron op een vaste maat (crop: linksboven bijsnijden in plaats van schalen)
+const pixels = (src, w, h, crop) => {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  if (crop) x.drawImage(src, 0, 0); else x.drawImage(src, 0, 0, w, h);
+  return x.getImageData(0, 0, w, h).data;
+};
+const luma = (d) => { let s = 0; for (let k = 0; k < d.length; k += 4) s += 0.2126 * d[k] + 0.7152 * d[k + 1] + 0.0722 * d[k + 2]; return s / (d.length / 4); };
+const diff = (a, b) => { let s = 0; for (let k = 0; k < a.length; k += 4) s += Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]); return s / (a.length / 4 * 3); };
+
+/* ---------- Structuur controleren: WebM (alle groottes exact, SeekHead, Cues) ---------- */
+const MASTER = new Set([0x1A45DFA3, 0x18538067, 0x114D9B74, 0x4DBB, 0x1549A966, 0x1654AE6B, 0xAE, 0xE0, 0xE1, 0x55B0, 0x1F43B675, 0xA0, 0x1C53BB6B, 0xBB, 0xB7]);
+const checkWebm = (b) => {
+  const vlen = (p) => { let l = 1; while (l <= 8 && !(b[p] & (0x80 >> (l - 1)))) l++; if (l > 8) throw new Error('ongeldige lengte op ' + p); return l; };
+  const num = (p, l, mask) => { if (!l) return 0; let v = mask ? b[p] & (0xFF >> l) : b[p]; for (let k = 1; k < l; k++) v = v * 256 + b[p + k]; return v; };
+  const walk = (start, end) => {
+    const out = [];
+    for (let p = start; p < end;) {
+      const il = vlen(p), id = num(p, il, false), sl = vlen(p + il), size = num(p + il, sl, true), data = p + il + sl;
+      if (data + size > end) throw new Error('element 0x' + id.toString(16) + ' op ' + p + ' loopt buiten zijn ouder');
+      const el = { id, pos: p, data, size, end: data + size };
+      if (MASTER.has(id)) el.kids = walk(data, el.end);
+      out.push(el); p = el.end;
+    }
+    return out;
+  };
+  const els = walk(0, b.length), errs = [];
+  const uint = (el) => num(el.data, el.size, false);
+  const flt = (el) => { const dv = new DataView(b.buffer, b.byteOffset + el.data, el.size); return el.size === 4 ? dv.getFloat32(0) : dv.getFloat64(0); };
+  const str = (el) => String.fromCharCode(...b.subarray(el.data, el.end));
+  const kid = (el, id) => el && el.kids && el.kids.find((k) => k.id === id);
+  const kids = (el, id) => (el && el.kids ? el.kids.filter((k) => k.id === id) : []);
+  if (els.length !== 2 || els[0].id !== 0x1A45DFA3 || els[1].id !== 0x18538067) throw new Error('bovenste niveau is niet EBML + Segment');
+  const seg = els[1];
+  if (str(kid(els[0], 0x4282)) !== 'webm') errs.push('DocType is niet webm');
+  if (seg.end !== b.length) errs.push('Segment-grootte klopt niet');
+  const sh = seg.kids[0];
+  if (!sh || sh.id !== 0x114D9B74) errs.push('SeekHead staat niet vooraan');
+  for (const s of kids(sh, 0x4DBB)) {
+    const idEl = kid(s, 0x53AB), want = Array.from(b.subarray(idEl.data, idEl.end)).reduce((v, x) => v * 256 + x, 0);
+    const at = seg.kids.find((k) => k.pos === seg.data + uint(kid(s, 0x53AC)));
+    if (!at || at.id !== want) errs.push('SeekHead wijst niet naar 0x' + want.toString(16));
+  }
+  const info = kid(seg, 0x1549A966), tracks = kids(kid(seg, 0x1654AE6B), 0xAE);
+  const dur = flt(kid(info, 0x4489)) * uint(kid(info, 0x2AD7B1)) / 1e9;
+  const blockInfo = (el) => {
+    const blk = el.id === 0xA3 ? el : kid(el, 0xA1);
+    return { track: b[blk.data] & 0x7F, rel: ((b[blk.data + 1] << 24) >> 16) | b[blk.data + 2], key: el.id === 0xA3 ? !!(b[blk.data + 3] & 0x80) : !kid(el, 0xFB) };
+  };
+  const clusters = kids(seg, 0x1F43B675), last = { 1: -1, 2: -1 };
+  let vFrames = 0, aFrames = 0, keys = 0, firstKey = null;
+  for (const c of clusters) {
+    const tc = uint(kid(c, 0xE7));
+    for (const el of c.kids.filter((k) => k.id === 0xA3 || k.id === 0xA0)) {
+      const bi = blockInfo(el), t = tc + bi.rel;
+      if (bi.track === 1) { vFrames++; if (bi.key) keys++; if (firstKey === null) firstKey = bi.key; } else aFrames++;
+      if (t < last[bi.track]) errs.push('tijd loopt terug in spoor ' + bi.track + ' op ' + t + ' ms');
+      last[bi.track] = t;
+    }
+  }
+  if (!firstKey) errs.push('eerste videobeeld is geen sleutelbeeld');
+  const cues = kid(seg, 0x1C53BB6B);
+  if (!cues) errs.push('Cues ontbreken');
+  for (const cp of kids(cues, 0xBB)) {
+    const t = uint(kid(cp, 0xB3)), tp = kid(cp, 0xB7), c = clusters.find((x) => x.pos === seg.data + uint(kid(tp, 0xF1)));
+    if (!c) { errs.push('CuePoint ' + t + ' wijst niet naar een cluster'); continue; }
+    if (uint(kid(c, 0xE7)) !== t) errs.push('CuePoint ' + t + ' ≠ clustertijd ' + uint(kid(c, 0xE7)));
+    const first = c.kids.find((k) => (k.id === 0xA3 || k.id === 0xA0) && blockInfo(k).track === uint(kid(tp, 0xF7)));
+    if (!first || !blockInfo(first).key || blockInfo(first).rel !== 0) errs.push('CuePoint ' + t + ': cluster begint niet met een sleutelbeeld');
+  }
+  return { errs, dur, tracks: tracks.length, codecs: tracks.map((t) => str(kid(t, 0x86))).join('+'), vFrames, aFrames, keys, clusters: clusters.length, cues: kids(cues, 0xBB).length };
+};
+
+/* ---------- Structuur controleren: MP4 (volgorde, tabellen, mdat precies gevuld) ---------- */
+const CONT = new Set(['moov', 'trak', 'edts', 'mdia', 'minf', 'dinf', 'stbl']);
+const checkMp4 = (b) => {
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength), u32 = (p) => dv.getUint32(p), u64 = (p) => u32(p) * 2 ** 32 + u32(p + 4);
+  const walk = (start, end) => {
+    const out = [];
+    for (let p = start; p < end;) {
+      let size = u32(p), hl = 8;
+      const type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
+      if (size === 1) { size = u64(p + 8); hl = 16; }
+      if (size < hl || p + size > end) throw new Error('box ' + type + ' op ' + p + ' heeft een ongeldige grootte');
+      const bx = { type, pos: p, data: p + hl, end: p + size };
+      const skip = CONT.has(type) ? 0 : { stsd: 8, avc1: 78, mp4a: 28 }[type];
+      if (skip != null) bx.kids = walk(bx.data + skip, bx.end);
+      out.push(bx); p = bx.end;
+    }
+    return out;
+  };
+  const top = walk(0, b.length), errs = [];
+  const find = (list, path) => { let cur = { kids: list }; for (const t of path.split('/')) cur = cur && cur.kids && cur.kids.find((k) => k.type === t); return cur; };
+  const order = top.map((x) => x.type).join(',');
+  if (order !== 'ftyp,moov,mdat') errs.push('volgorde is ' + order);
+  const mdat = find(top, 'mdat'), mvhd = find(top, 'moov/mvhd'), v1 = b[mvhd.data] === 1;
+  const dur = (v1 ? u64(mvhd.data + 24) : u32(mvhd.data + 16)) / u32(mvhd.data + (v1 ? 20 : 12));
+  const traks = find(top, 'moov').kids.filter((k) => k.type === 'trak'), spans = [], out = { errs, dur, tracks: traks.length, samples: {} };
+  for (const t of traks) {
+    const hdlr = find(t.kids, 'mdia/hdlr'), kind = String.fromCharCode(...b.subarray(hdlr.data + 8, hdlr.data + 12));
+    const mdhd = find(t.kids, 'mdia/mdhd'), m1 = b[mdhd.data] === 1, mdur = m1 ? u64(mdhd.data + 24) : u32(mdhd.data + 16);
+    const stbl = find(t.kids, 'mdia/minf/stbl'), get = (n) => stbl.kids.find((k) => k.type === n);
+    const stsz = get('stsz'), n = u32(stsz.data + 8), sizes = [];
+    for (let k = 0; k < n; k++) sizes.push(u32(stsz.data + 12 + 4 * k));
+    const stts = get('stts');
+    let cnt = 0, sum = 0;
+    for (let k = 0, e = u32(stts.data + 4); k < e; k++) { const c = u32(stts.data + 8 + 8 * k); cnt += c; sum += c * u32(stts.data + 12 + 8 * k); }
+    if (cnt !== n) errs.push(kind + ': stts telt ' + cnt + ' monsters, stsz ' + n);
+    if (sum !== mdur) errs.push(kind + ': stts-duur ' + sum + ' ≠ mdhd ' + mdur);
+    const stsc = get('stsc'), sc = [];
+    for (let k = 0, e = u32(stsc.data + 4); k < e; k++) sc.push([u32(stsc.data + 8 + 12 * k), u32(stsc.data + 12 + 12 * k)]);
+    const co = get('stco') || get('co64'), nc = u32(co.data + 4);
+    let s = 0;
+    for (let ci = 0; ci < nc; ci++) {
+      let per = 0, o = co.type === 'co64' ? u64(co.data + 8 + 8 * ci) : u32(co.data + 8 + 4 * ci);
+      for (const [first, spc] of sc) if (first <= ci + 1) per = spc;
+      for (let k = 0; k < per && s < n; k++, s++) { spans.push([o, sizes[s], kind, s]); o += sizes[s]; }
+    }
+    if (s !== n) errs.push(kind + ': stsc/stco dekken ' + s + ' van ' + n + ' monsters');
+    out.samples[kind] = n;
+    if (kind === 'vide') {
+      const stss = get('stss');
+      if (!stss || u32(stss.data + 8) !== 1) errs.push('eerste videomonster staat niet in stss');
+      out.keys = stss ? u32(stss.data + 4) : 0;
+      const avcC = find(t.kids, 'mdia/minf/stbl/stsd/avc1/avcC');
+      if (!avcC || b[avcC.data] !== 1) errs.push('avcC ontbreekt of is ongeldig');
+      const [o0, z0] = spans.find((x) => x[2] === 'vide' && x[3] === 0), nals = [];
+      let q = o0;
+      while (q < o0 + z0) { nals.push(b[q + 4] & 31); q += 4 + u32(q); }
+      if (q !== o0 + z0) errs.push('NAL-lengtes in het eerste beeld kloppen niet');
+      if (!nals.includes(5)) errs.push('eerste beeld bevat geen IDR-slice (NAL-typen ' + nals.join(',') + ')');
+    } else if (!find(t.kids, 'mdia/minf/stbl/stsd/mp4a/esds')) errs.push('esds ontbreekt');
+  }
+  spans.sort((x, y) => x[0] - y[0]);
+  let p = mdat.data;
+  for (const [o, z] of spans) { if (o !== p) { errs.push('gat of overlap in mdat op ' + o); break; } p += z; }
+  if (p !== mdat.end) errs.push('mdat-grootte klopt niet met de monsters');
+  return out;
+};
+
+/* ---------- Video maken ---------- */
+// Beeldenlijst van een geval: { t, dur, i } (standaard: gelijkmatig vanaf 0, of c.list)
+const frameList = (c) => {
+  const fps = c.fps || 30;
+  return c.list ? c.list(fps) : Array.from({ length: c.frames || Math.round(c.seconds * fps) }, (_, i) => ({ t: i / fps, dur: c.still || 1 / fps, i }));
+};
+const make = async (c) => {
+  const fps = c.fps || 30, sr = 48000, list = frameList(c);
+  const rec = await App.Video.create({ format: c.format, width: c.width, height: c.height, fps, codec: c.codec, keyEvery: c.keyEvery, audio: c.audio ? { sampleRate: sr, channels: 2 } : undefined });
+  const cv = document.createElement('canvas'); cv.width = c.width; cv.height = c.height;
+  const ctx = cv.getContext('2d'), t0 = performance.now();
+  for (const [k, f] of list.entries()) {
+    draw(ctx, cv.width, cv.height, f.t, f.i);
+    let src = cv;   // afwisselend canvas, ImageBitmap en VideoFrame als bron
+    if (c.mixed && k % 3 === 1) src = await createImageBitmap(cv);
+    if (c.mixed && k % 3 === 2) src = new VideoFrame(cv, { timestamp: 0 });
+    await rec.frame(src, f.t, f.dur);
+    if (src !== cv) src.close();
+    if (c.audio && !rec.audioSkipped) await rec.audio(sine(Math.round(f.t * sr), Math.round(f.dur * sr), sr, 2), f.t);
+  }
+  const blob = await rec.finish();
+  return { rec, blob, list, ms: performance.now() - t0 };
+};
+const play = async (blob) => {
+  const v = document.createElement('video');
+  v.muted = true; v.preload = 'auto'; v.playsInline = true;
+  $('#media').appendChild(v);
+  v.src = URL.createObjectURL(blob);
+  await within(new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('afspeelfout ' + (v.error ? v.error.code + ' ' + v.error.message : ''))); }), 15000, 'loadedmetadata');
+  return v;
+};
+const seek = (v, t) => within(new Promise((res) => { v.onseeked = res; v.currentTime = t; }), 15000, 'seeked');
+// Geluid decoderen en de toon meten (nuldoorgangen en sterkte in de tweede seconde)
+const tone = async (blob) => {
+  const buf = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(await blob.arrayBuffer());
+  const d = buf.getChannelData(0), sr = buf.sampleRate, a = sr, z = Math.min(d.length, 2 * sr);
+  let zc = 0, sq = 0;
+  for (let k = a; k < z; k++) { sq += d[k] * d[k]; if (d[k - 1] < 0 && d[k] >= 0) zc++; }
+  return { dur: buf.duration, rms: Math.sqrt(sq / Math.max(1, z - a)), freq: zc / Math.max(1e-9, (z - a) / sr) };
+};
+
+/* ---------- Eén geval: maken, structuur, afspelen, zoeken, beeld en geluid ---------- */
+const runCase = async (c) => {
+  const nm = c.name, fps = c.fps || 30;
+  let res;
+  try { res = await make(c); } catch (e) { return check(nm + ': maken', false, e.message); }
+  const { rec, blob, list } = res, w = rec.width, h = rec.height, n = list.length, last = list[n - 1];
+  const exp = last.t + last.dur, at = c.at ?? 1.5;
+  const fAt = list.filter((f) => f.t <= at + 1e-9).pop() || list[0];   // beeld dat op 'at' zichtbaar moet zijn
+  FILES[nm.replace(/[^\w.-]+/g, '_') + '.' + c.format] = blob;
+  check(nm + ': maken', blob.size > 0 && blob.type === 'video/' + c.format, `${rec.codec}${rec.audioCodec ? ' + ' + rec.audioCodec : ''}${rec.audioSkipped ? ' (geluid overgeslagen)' : ''}, ${(blob.size / 1024).toFixed(1)} kB, ${rec.frames} beelden, ${Math.round(res.ms)} ms`);
+  if (c.codecPrefix) check(nm + ': codec', rec.codec.startsWith(c.codecPrefix), rec.codec);
+  check(nm + ': maat even (rec.width/height)', w === (c.width & ~1) && h === (c.height & ~1), w + '×' + h);
+  const hasAudio = c.audio && !rec.audioSkipped;
+  try {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const s = c.format === 'webm' ? checkWebm(bytes) : checkMp4(bytes);
+    const frames = c.format === 'webm' ? s.vFrames : s.samples.vide;
+    const ok = !s.errs.length && frames === n + (c.lead ? 1 : 0) && s.tracks === (hasAudio ? 2 : 1) && Math.abs(s.dur - exp) < 0.1;
+    check(nm + ': structuur', ok, (s.errs.length ? s.errs.join('; ') + ' — ' : '') + JSON.stringify(Object.assign({}, s, { errs: undefined })));
+  } catch (e) { check(nm + ': structuur', false, e.message); }
+  let v;
+  try { v = await play(blob); } catch (e) { return check(nm + ': loadedmetadata', false, e.message); }
+  check(nm + ': loadedmetadata', true);
+  check(nm + ': duur ≈ ' + f2(exp) + ' s', Math.abs(v.duration - exp) <= 0.2, f2(v.duration) + ' s');
+  check(nm + ': videoWidth/videoHeight', v.videoWidth === w && v.videoHeight === h, v.videoWidth + '×' + v.videoHeight);
+  check(nm + ': seekable', v.seekable.length > 0 && Math.abs(v.seekable.end(0) - v.duration) < 0.05, v.seekable.length ? f2(v.seekable.start(0)) + '–' + f2(v.seekable.end(0)) + ' s' : 'leeg');
+  try { await seek(v, at); check(nm + ': zoeken naar ' + at + ' s', true, 'seeked, currentTime ' + f2(v.currentTime)); } catch (e) { return check(nm + ': zoeken naar ' + at + ' s', false, e.message); }
+  await sleep(60);
+  const got = pixels(v, w, h), L = luma(got);
+  check(nm + ': beeld op ' + at + ' s niet zwart', L > 30, 'helderheid ' + f2(L));
+  // vergelijken met het bronbeeld op dat moment (en ter controle met beeld 0)
+  const ref = (f) => { const cv = document.createElement('canvas'); cv.width = c.width; cv.height = c.height; draw(cv.getContext('2d'), c.width, c.height, f.t, f.i); return pixels(cv, w, h, true); };
+  const other = fAt === list[0] ? null : list[0], dOk = diff(got, ref(fAt)), d0 = other ? diff(got, ref(other)) : 0;
+  check(nm + ': beeld op ' + at + ' s = bronbeeld ' + fAt.i, dOk < 12 && (!other || d0 > dOk * 3), 'gem. verschil ' + f2(dOk) + (other ? ' (met beeld 0: ' + f2(d0) + ')' : ''));
+  if (c.lead) {
+    try { await seek(v, c.lead / 2); const L0 = luma(pixels(v, w, h)); check(nm + ': zwart vóór het eerste beeld', L0 < 8, 'helderheid op ' + c.lead / 2 + ' s: ' + f2(L0)); } catch (e) { check(nm + ': zwart vóór het eerste beeld', false, e.message); }
+  }
+  if (c.audio && rec.audioSkipped) check(nm + ': geluid', null, 'geen ' + (c.format === 'webm' ? 'Opus' : 'AAC') + '-encoder: geluid overgeslagen');
+  else if (c.audio) {
+    try {
+      const a = await tone(blob);
+      check(nm + ': geluid 440 Hz', Math.abs(a.freq - 440) < 8 && a.rms > 0.2 && Math.abs(a.dur - exp) < 0.25, f2(a.freq) + ' Hz, rms ' + f2(a.rms) + ', ' + f2(a.dur) + ' s');
+    } catch (e) { check(nm + ': geluid', false, e.message); }
+  }
+};
+
+/* ---------- Fouten en annuleren ---------- */
+const extras = async (sup) => {
+  const expectErr = async (name, fn, re) => { try { await fn(); check(name, false, 'geen fout'); } catch (e) { check(name, re.test(e.name + ' ' + e.message), e.name + ': ' + e.message); } };
+  await expectErr('fout: onbekend formaat', () => App.Video.create({ format: 'avi', width: 64, height: 64 }), /videoformaat/);
+  await expectErr('fout: ongeldige maat', () => App.Video.create({ format: 'webm', width: 1, height: 1 }), /afmetingen/);
+  const cv = document.createElement('canvas'); cv.width = 320; cv.height = 180; draw(cv.getContext('2d'), 320, 180, 0, 0);
+  const r1 = await App.Video.create({ format: 'webm', width: 64, height: 64 });
+  await expectErr('fout: afronden zonder beelden', () => r1.finish(), /Geen beelden/);
+  await r1.frame(cv, 0);   // andere maat: wordt geschaald via het hulpcanvas
+  await expectErr('fout: tijd loopt niet op', () => r1.frame(cv, 0), /oplopende/);
+  r1.cancel();
+  await expectErr('annuleren: frame() daarna', () => r1.frame(cv, 1), /AbortError/);
+  await expectErr('annuleren: finish() daarna', () => r1.finish(), /AbortError/);
+  // annuleren tijdens afronden mag niet blijven hangen
+  const r2 = await App.Video.create({ format: 'webm', width: 320, height: 180 });
+  for (let i = 0; i < 10; i++) await r2.frame(cv, i / 30);
+  const p = r2.finish();
+  r2.cancel();
+  await expectErr('annuleren tijdens finish()', () => within(p, 5000, 'finish'), /AbortError/);
+  // automatische tijd en audio zonder geluidsoptie
+  const r3 = await App.Video.create({ format: 'webm', width: 320, height: 180, fps: 25 });
+  for (let i = 0; i < 25; i++) await r3.frame(cv);
+  await r3.audio(sine(0, 480, 48000, 1), 0);
+  const b3 = await r3.finish(), s3 = checkWebm(new Uint8Array(await b3.arrayBuffer()));
+  check('tijd automatisch (25 fps, 1 s)', !s3.errs.length && s3.vFrames === 25 && Math.abs(s3.dur - 1) < 0.01 && s3.tracks === 1, 'duur ' + f2(s3.dur) + ' s, ' + s3.vFrames + ' beelden, ' + s3.tracks + ' spoor');
+  // geluid met een gat (wordt stilte) en mono-invoer bij stereo-uitvoer
+  if (!sup.opus) return check('geluid met gat', null, 'geen Opus-encoder');
+  const r4 = await App.Video.create({ format: 'webm', width: 320, height: 180, audio: { sampleRate: 48000, channels: 2 } });
+  for (let i = 0; i < 90; i++) await r4.frame(cv, i / 30);
+  await r4.audio(sine(0, 48000, 48000, 2), 0);
+  await r4.audio(sine(96000, 48000, 48000, 1), 2);
+  const buf = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(await (await r4.finish()).arrayBuffer());
+  const rms = (a, z) => { const d = buf.getChannelData(0); let s = 0; for (let k = a; k < z; k++) s += d[k] * d[k]; return Math.sqrt(s / (z - a)); };
+  const x1 = rms(4800, 43200), gap = rms(52800, 91200), x3 = rms(100800, 139200);
+  check('geluid met gat: stilte ingevuld', x1 > 0.3 && gap < 0.01 && x3 > 0.3 && Math.abs(buf.duration - 3) < 0.1, `rms 0–1 s ${f2(x1)}, 1–2 s ${f2(gap)}, 2–3 s ${f2(x3)}, ${f2(buf.duration)} s`);
+};
+
+/* ---------- Alles uitvoeren ---------- */
+const CASES = (sup) => [
+  { name: 'WebM 640×360 3 s + toon', format: 'webm', width: 640, height: 360, seconds: 3, audio: true, codecPrefix: sup.webm.vp9 ? 'vp09' : '', need: true },
+  { name: 'MP4 640×360 3 s + toon', format: 'mp4', width: 640, height: 360, seconds: 3, audio: true, codecPrefix: 'avc1', need: sup.mp4.h264 },
+  { name: 'WebM 1 beeld (2 s stil)', format: 'webm', width: 640, height: 360, frames: 1, still: 2, need: true },
+  { name: 'MP4 1 beeld (2 s stil)', format: 'mp4', width: 640, height: 360, frames: 1, still: 2, need: sup.mp4.h264 },
+  { name: 'WebM 1280×720 3 s + toon, gemengde bronnen', format: 'webm', width: 1280, height: 720, seconds: 3, audio: true, mixed: true, need: true },
+  { name: 'MP4 1280×720 3 s + toon, gemengde bronnen', format: 'mp4', width: 1280, height: 720, seconds: 3, audio: true, mixed: true, need: sup.mp4.h264 },
+  { name: 'WebM VP8 640×360 3 s + toon', format: 'webm', codec: 'vp8', codecPrefix: 'vp8', width: 640, height: 360, seconds: 3, audio: true, need: sup.webm.vp8 },
+  { name: 'WebM AV1 640×360 3 s', format: 'webm', codec: 'av1', codecPrefix: 'av01', width: 640, height: 360, seconds: 3, need: sup.webm.av1 },
+  { name: 'WebM oneven 641×361', format: 'webm', width: 641, height: 361, seconds: 2, need: true },
+  { name: 'MP4 oneven 641×361', format: 'mp4', width: 641, height: 361, seconds: 2, need: sup.mp4.h264 },
+  { name: 'WebM 20 s 320×180 + toon, sleutelbeeld elke 10 s', format: 'webm', width: 320, height: 180, seconds: 20, keyEvery: 10, audio: true, at: 15.5, need: true },
+  { name: 'MP4 20 s 320×180 + toon', format: 'mp4', width: 320, height: 180, seconds: 20, audio: true, at: 15.5, need: sup.mp4.h264 },
+  { name: 'WebM stilstaande dia van 1 s middenin + toon', format: 'webm', width: 640, height: 360, list: still, audio: true, need: true },
+  { name: 'MP4 stilstaande dia van 1 s middenin + toon', format: 'mp4', width: 640, height: 360, list: still, audio: true, need: sup.mp4.h264 },
+  { name: 'WebM eerste beeld op 0,5 s (zwart ervoor)', format: 'webm', width: 640, height: 360, list: late, lead: 0.5, need: true },
+  { name: 'MP4 eerste beeld op 0,5 s (zwart ervoor)', format: 'mp4', width: 640, height: 360, list: late, lead: 0.5, need: sup.mp4.h264 },
+];
+// 1 s beweging, dan één beeld dat 1 s blijft staan, dan weer 1 s beweging
+function still(fps) {
+  const run = (t0, i0) => Array.from({ length: fps }, (_, j) => ({ t: t0 + j / fps, dur: 1 / fps, i: i0 + j }));
+  return [...run(0, 0), { t: 1, dur: 1, i: fps }, ...run(2, fps + 1)];
+}
+// eerste beeld pas op 0,5 s
+function late(fps) { return Array.from({ length: 2 * fps }, (_, i) => ({ t: 0.5 + i / fps, dur: 1 / fps, i })); }
+(async () => {
+  let sup = null;
+  try {
+    sup = await App.Video.support();
+    $('#support').textContent = 'App.Video.support() = ' + JSON.stringify(sup) + '\n' + navigator.userAgent;
+    check('support()', typeof sup.webm.vp9 === 'boolean' && typeof sup.mp4.h264 === 'boolean' && typeof sup.opus === 'boolean', JSON.stringify(sup));
+    for (const c of CASES(sup)) {
+      if (!c.need) { check(c.name, null, 'niet ondersteund door deze browser'); continue; }
+      await runCase(c);
+    }
+    await extras(sup);
+  } catch (e) { check('onverwachte fout', false, e.stack || e.message); }
+  const fails = checks.filter((x) => x.status === 'FAIL'), passed = checks.filter((x) => x.status === 'PASS').length;
+  const pass = !fails.length && passed > 0;
+  $('#sum').textContent = pass ? 'Alles geslaagd (' + passed + ' controles)' : fails.length + ' controle(s) mislukt';
+  $('#sum').className = pass ? 'PASS' : 'FAIL';
+  window.RESULT = { pass, support: sup, details: checks };
+})();
+</script>
+</body>
+</html>

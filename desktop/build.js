@@ -1,8 +1,8 @@
 /* =========================================================
-   Kantoor Space — bouwt Inkt en Cel als Linux-programma (Electron).
+   Kantoor Space — bouwt Inkt, Cel en Doek als Linux-programma (Electron).
    Gebruik (in de map desktop):
      npm install
-     node build.js                 # beide apps, AppImage + deb + rpm + tar.gz, x64 + arm64 (op Linux)
+     node build.js                 # alle apps, AppImage + deb + rpm + tar.gz, x64 + arm64 (op Linux)
      node build.js inkt            # alleen Inkt
      node build.js cel --dir       # alleen uitpakken (snel testen, geen installatiebestand)
      node build.js inkt --target=AppImage --arch=x64
@@ -28,6 +28,11 @@ const APPS = {
     name: 'Cel', port: 8081, src: path.join(ROOT, 'cel'), desc: 'Spreadsheet from Kantoor Space, compatible with .xlsx files',
     files: ['index.html', 'manifest.webmanifest', 'sw.js', 'server.js', 'js', 'css', 'fonts', 'vendor', 'icons', '../LICENSE', '../DERDEN-LICENTIES.md'],
     mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  },
+  doek: {
+    name: 'Doek', port: 8082, src: path.join(ROOT, 'doek'), desc: 'Presentation program from Kantoor Space, compatible with .pptx files',
+    files: ['index.html', 'manifest.webmanifest', 'sw.js', 'server.js', 'js', 'css', 'fonts', 'vendor', 'icons', '../LICENSE', '../DERDEN-LICENTIES.md'],
+    mime: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
   },
 };
 

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doek — grafieken</title>
+<!-- Doek (gemaakt door JJ van Schelven) — testpagina voor js/charts.js: alle soorten licht en donker, randgevallen
+     en de gegevenseditor (klik op een grafiek). Opties: ?s=light|dark|edge, ?lang=en, ?w=420&h=260 -->
+<style>
+@font-face { font-family: 'Inter'; font-weight: 100 900; src: url(../fonts/inter-2.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212; }
+@font-face { font-family: 'Inter'; font-weight: 100 900; src: url(../fonts/inter-4.woff2) format('woff2'); unicode-range: U+0100-02BA, U+1E00-1E9F, U+20A0-20AB, U+20AD-20C4; }
+@font-face { font-family: 'Material Symbols Outlined'; font-weight: 100 700; src: url(../fonts/material-symbols-outlined.woff2) format('woff2'); }
+:root { --accent: #c43e1c; --accent-strong: #a8331a; --accent-soft: #fbe9e4; --panel: #fff; --text: #242424; --muted: #616161; --line: #e0e0e0; --line-strong: #c4c4c4; --hover: #f0f0f0; --press: #e0e0e0; --on: #dcdcdc; --radius: 4px; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 18px 24px 40px; font: 13px Inter, 'Segoe UI', sans-serif; color: var(--text); background: #f3f3f3; }
+h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; } h2 { font-size: 15px; font-weight: 600; margin: 22px 0 10px; }
+p.sub { margin: 0 0 6px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w), var(--w))); gap: 14px; }
+.card { background: #fff; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.12); overflow: hidden; cursor: pointer; }
+.card .cap { font-size: 11.5px; color: #555; padding: 6px 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card svg { display: block; }
+.dark { background: #161616; padding: 14px; border-radius: 8px; }
+.dark .card { background: #1e1e1e; box-shadow: 0 0 0 1px #333; } .dark .card .cap { color: #aaa; }
+.i { font-family: 'Material Symbols Outlined'; font-size: 18px; line-height: 1; display: inline-block; font-feature-settings: 'liga'; }
+/* gegevenseditor: minimale kopie van de suitestijl (dialoog, knoppen, tabel) */
+#dialog-layer .backdrop { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.28); display: grid; place-items: center; }
+.dialog { background: var(--panel); border-radius: 6px; box-shadow: 0 6px 14px rgba(0,0,0,.13), 0 1px 4px rgba(0,0,0,.11); border: 1px solid var(--line); width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.dialog.xwide { width: min(1000px, calc(100vw - 32px)); }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 8px 20px; } .dlg-head h2 { margin: 0; font-size: 15px; }
+.dlg-body { padding: 6px 20px 14px; overflow: auto; } .dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; }
+.qb { border: 0; background: transparent; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; } .qb:hover { background: var(--hover); }
+.btn { border: 1px solid var(--line-strong); background: var(--panel); border-radius: var(--radius); height: 30px; min-width: 80px; padding: 0 12px; font: inherit; font-weight: 600; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; color: var(--text); }
+.btn:hover { background: var(--hover); } .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.small { height: 26px; min-width: 0; padding: 0 10px; font-size: 12px; font-weight: 400; }
+.data-table { border-collapse: collapse; font-size: 12.5px; } .muted { color: var(--muted); } .small { font-size: 11.5px; }
+</style>
+</head>
+<body>
+<h1>Doek — grafieken</h1>
+<p class="sub">Alle soorten met voorbeeldgegevens, licht en donker, plus randgevallen. Klik op een grafiek om de gegevens te bewerken.</p>
+<div id="out"></div>
+<div id="dialog-layer"></div>
+<script>window.App = {};</script>
+<script src="../js/lang/en-charts.js"></script>
+<script src="../js/charts.js"></script>
+<script>
+'use strict';
+(() => {
+  const q = new URLSearchParams(location.search), C = App.Charts, W = +q.get('w') || 420, H = +q.get('h') || 260, only = q.get('s');
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  if (q.get('lang') === 'en') {   // eenvoudige vertaling met het woordenboek (zoals i18n.js)
+    App.LANG = 'en';
+    const D = window.KANTOOR_DICT, pats = Object.keys(D).filter((k) => /\{\d\}/.test(k)).map((k) => [new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{(\d)\\\}/g, '(.*?)') + '$'), D[k]]);
+    App.t = (s) => { if (D[s] !== undefined) return D[s]; for (const [re, v] of pats) { const m = re.exec(s); if (m) return v.replace(/\{(\d)\}/g, (_, d) => m[+d + 1]); } return s; };
+  }
+  // nep-themakleuren: accent1..6 en varianten '/l40' (lichter) en '/d25' (donkerder)
+  const PAL = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948'], SLOT = { tx1: '#262626', bg1: '#ffffff', tx2: '#44546a', bg2: '#e7e6e6' };
+  const mixHex = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+  const color = (ref) => {
+    const m = /^(accent[1-6]|tx1|bg1|tx2|bg2)(?:\/([ld])(\d+))?$/.exec(ref);
+    if (!m) return /^#[0-9a-f]{6}$/i.test(ref) ? ref : '#000000';
+    const base = m[1].startsWith('accent') ? PAL[m[1].slice(6) - 1] : SLOT[m[1]];
+    return !m[2] ? base : mixHex(base, m[2] === 'l' ? '#ffffff' : '#000000', m[3] / 100);
+  };
+  const LIGHT = { color, palette: PAL, font: 'Inter', text: '#404040', grid: '#d9d9d9', axis: '#bfbfbf', bg: '#ffffff', scale: 1, locale: App.LANG === 'en' ? 'en' : 'nl' };
+  const DARK = Object.assign({}, LIGHT, { text: '#e6e6e6', grid: '#444444', axis: '#666666', bg: '#1e1e1e' });
+  const out = document.getElementById('out');
+  const section = (title, cls) => { const h = document.createElement('h2'); h.textContent = title; const g = document.createElement('div'); g.className = 'grid ' + (cls || ''); g.style.setProperty('--w', W + 'px'); out.append(h, g); return g; };
+  const card = (host, cap, chart, ctx, w = W, h = H) => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    const draw = () => { d.innerHTML = `<div class="cap">${esc(cap)}</div>${C.render(chart, w, h, ctx)}`; };
+    draw();
+    d.onclick = () => C.editData(chart, (nc) => { chart = nc; draw(); }, ctx);
+    host.appendChild(d);
+  };
+  window.CH = {};   // voor tests van buitenaf
+  if (!only || only === 'light') { const g = section('Licht'); C.KINDS.forEach((k) => { CH[k.id] = C.sample(k); card(g, k.name + ' — ' + k.id, CH[k.id], LIGHT); }); }
+  if (!only || only === 'dark') { const g = section('Donker', 'dark'); C.KINDS.forEach((k) => card(g, k.name, C.sample(k), DARK)); }
+  if (!only || only === 'edge') {
+    const g = section('Randgevallen');
+    const S = (k, sub, extra) => Object.assign(C.sample(k, sub), extra || {});
+    const tr = (k, sub, t, extra) => { const ch = S(k, sub, extra); ch.series.forEach((s, i) => { if (!i) s.trend = Object.assign({ eq: true, r2: true }, t); }); return ch; };
+    const cats = (n, p = 'Categorie ') => Array.from({ length: n }, (_, i) => p + (i + 1));
+    const E = [
+      ['Trend lineair + R²', tr('column', 'clustered', { type: 'linear' }, { legend: 'b' })],
+      ['Trend exponentieel', tr('scatter', 'markers', { type: 'exp' })],
+      ['Trend polynoom 3 + voorspelling', tr('line', 'clustered', { type: 'poly', order: 3, fwd: 2 })],
+      ['Trend macht', tr('scatter', 'markers', { type: 'power' })],
+      ['Trend logaritmisch', tr('scatter', 'markers', { type: 'log', back: 0.5 })],
+      ['Trend zwevend gemiddelde', tr('line', 'clustered', { type: 'movavg', period: 2, eq: false, r2: false }, { cats: cats(8), series: [{ name: 'Omzet', vals: [3, 5, 4, 7, 6, 9, 8, 11] }] })],
+      ['Labels buiten', S('column', 'clustered', { labels: { on: true } })],
+      ['Labels gestapeld midden', S('column', 'stacked', { labels: { on: true } })],
+      ['Labels staaf', S('bar', 'clustered', { labels: { on: true } })],
+      ['Labels lijn', S('line', 'clustered', { labels: { on: true }, series: S('line').series.map((s) => Object.assign(s, { marker: 'circle' })) })],
+      ['Cirkel: categorie + %', S('pie', undefined, { labels: { on: true, cat: true, pct: true } })],
+      ['Cirkel: 12 punten, labels buiten', S('pie', undefined, { legend: 'r', cats: cats(12, 'Punt '), labels: { on: true, pos: 'best' }, series: [{ name: 'Aandeel', vals: [30, 22, 14, 9, 7, 5, 4, 3, 2, 2, 1, 1] }] })],
+      ['Cirkel uitgelicht, start 90°', S('pie', undefined, { firstAng: 90, labels: { on: true }, series: [{ name: 'Verkoop', vals: [8.2, 3.2, 1.4, 1.2], explode: [0.15, 0, 0, 0] }] })],
+      ['Ring, drie ringen + labels', S('doughnut', undefined, { labels: { on: true }, series: [{ name: 'A', vals: [3, 2, 2, 1] }, { name: 'B', vals: [2, 2, 3, 1] }, { name: 'C', vals: [1, 3, 2, 2] }] })],
+      ['Negatief en gemengd', S('column', 'clustered', { series: [{ name: 'Winst', vals: [4.3, -2.5, 3.5, -4.5] }, { name: 'Kosten', vals: [-2.4, 4.4, -1.8, 2.8] }] })],
+      ['Negatieve staven', S('bar', 'clustered', { series: [{ name: 'Verschil', vals: [-4, -2.5, 1.5, -1] }] })],
+      ['Miljarden', S('column', 'clustered', { series: [{ name: 'Omzet', vals: [1.2e9, 2.5e9, 7e8, 3.3e9] }, { name: 'Kosten', vals: [9e8, 1.4e9, 2e9, 2.8e9] }] })],
+      ['Kleine getallen, gestapeld', S('area', 'stacked', { series: [{ name: 'a', vals: [0.0012, 0.0031, 0.0025, 0.004, 0.0028] }, { name: 'b', vals: [0.001, 0.0015, 0.002, 0.0011, 0.003] }] })],
+      ['50 categorieën kolom', S('column', 'clustered', { cats: cats(50), series: [{ name: 'Reeks 1', vals: cats(50).map((_, i) => Math.sin(i / 5) * 10 + 12) }] })],
+      ['50 categorieën lijn', S('line', 'clustered', { cats: cats(50, 'Week '), series: [{ name: 'A', vals: cats(50).map((_, i) => Math.sin(i / 6) * 8 + 10) }, { name: 'B', vals: cats(50).map((_, i) => (i % 9) + 2) }] })],
+      ['Gaten in lijn (vloeiend)', S('line', 'clustered', { cats: cats(8), series: [{ name: 'A', smooth: true, marker: 'circle', vals: [3, 5, null, 6, 4, null, null, 8] }, { name: 'B', marker: 'diamond', vals: [1, 2, 2.5, null, 3, 3.5, 4, 3] }] })],
+      ['Leeg (geen reeksen)', S('column', 'clustered', { series: [] })],
+      ['Lege cirkel', S('pie', undefined, { series: [{ name: 'Leeg', vals: [null, null] }] })],
+      ['Eén punt', S('line', 'clustered', { cats: ['Enige'], series: [{ name: 'A', marker: 'square', vals: [4] }] })],
+      ['Logaritmische as', S('line', 'clustered', { axes: { val: { log: true, title: 'Waarde (log)' } }, series: [{ name: 'Groei', marker: 'circle', vals: [3, 40, 700, 9000, 120000] }], cats: cats(5) })],
+      ['Secundaire as + astitels', S('combo', 'colLine2', { axes: { val: { title: 'Aantal' }, val2: { title: 'Procent', fmt: '0%' }, cat: { title: 'Kwartaal' } }, series: S('combo', 'colLine2').series.map((s, i) => (i === 2 ? Object.assign(s, { vals: [0.12, 0.18, 0.31, 0.45] }) : s)) })],
+      ['Lange categorienamen (staaf)', S('bar', 'clustered', { cats: ['Noord-Holland en Flevoland', 'Zuid-Holland', 'Utrecht en omgeving', 'Gelderland, Overijssel en Drenthe'], axes: { cat: { rev: true } } })],
+      ['Radar 8 assen + labels', S('radar', 'markers', { cats: ['Snelheid', 'Kracht', 'Techniek', 'Uithouding', 'Tactiek', 'Teamwerk', 'Mentaal', 'Lenigheid'], labels: { on: true }, series: [{ name: 'Speler A', vals: [8, 6, 9, 5, 7, 8, 6, 4] }, { name: 'Speler B', vals: [5, 9, 6, 8, 5, 6, 7, 8] }] })],
+      ['Bellen met labels', S('bubble', undefined, { labels: { on: true } })],
+      ['Puntkleuren via thema', S('column', 'clustered', { series: [{ name: 'Status', vals: [5, 3, 4, 2], pointColors: ['accent5', 'accent2/l40', null, 'accent3/d25'] }] })],
+      ['Lange titel die over twee regels moet teruglopen omdat hij echt veel te lang is', S('column', 'clustered', { title: { on: true, text: 'Lange titel die over twee regels moet teruglopen omdat hij echt veel te lang is' } })],
+      ['14 reeksen, legenda rechts', S('column', 'clustered', { legend: 'r', series: Array.from({ length: 14 }, (_, i) => ({ name: 'Reeks ' + (i + 1), vals: [i + 1, 14 - i, (i * 7) % 10 + 1, 5] })) })],
+      ['Legenda links', S('line', 'clustered', { legend: 'l' })], ['Legenda boven', S('area', 'clustered', { legend: 't' })],
+      ['Monochroom 1', S('column', 'clustered', { palette: 'mono1' })], ['Kleurrijk 4', S('doughnut', undefined, { palette: 'colorful4', hole: 75 })],
+    ];
+    for (let st = 2; st <= 8; st++) E.push(['Stijl ' + st, S(st % 3 === 0 ? 'line' : st === 8 ? 'pie' : 'column', st % 3 === 0 ? 'clustered' : undefined, { style: st, series: st % 3 === 0 ? S('line').series.map((s) => Object.assign(s, { marker: 'circle' })) : undefined })]);
+    const pick = q.get('pick') ? q.get('pick').split(',').map(Number) : null;   // ?pick=0,3,7: alleen deze randgevallen
+    E.forEach(([cap, ch], i) => {
+      if (pick && !pick.includes(i)) return;
+      if (!ch.series) delete ch.series;
+      card(g, i + '. ' + cap, ch.series ? ch : Object.assign(ch, { series: C.sample(ch.kind, ch.sub).series }), q.get('dark') ? DARK : LIGHT);
+    });
+  }
+  document.title += ' (klaar)';
+})();
+// minimale App.dialog (zelfde opties als cel/js/ui.js) om de gegevenseditor hier te proberen
+App.dialog = (o) => {
+  const layer = document.getElementById('dialog-layer'), bd = document.createElement('div'), dlg = document.createElement('div');
+  bd.className = 'backdrop';
+  dlg.className = 'dialog' + (o.wide ? ' wide' : '') + (o.xwide ? ' xwide' : '');
+  dlg.innerHTML = `<div class="dlg-head"><h2></h2><button class="qb" data-x title="Sluiten"><span class="i">close</span></button></div><div class="dlg-body"></div><div class="dlg-foot"></div>`;
+  dlg.querySelector('h2').textContent = o.title || '';
+  const body = dlg.querySelector('.dlg-body'), foot = dlg.querySelector('.dlg-foot');
+  if (typeof o.body === 'string') body.innerHTML = o.body; else if (o.body) body.appendChild(o.body);
+  const api = { el: dlg, body, $: (s) => dlg.querySelector(s), close() { if (api.closed) return; api.closed = true; bd.remove(); document.removeEventListener('keydown', onKey, true); o.onClose && o.onClose(); } };
+  (o.buttons || [{ label: 'Sluiten', primary: true }]).forEach((b) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (b.primary ? ' primary' : '');
+    btn.textContent = b.label;
+    btn.onclick = () => { const keep = b.action ? b.action(api) : undefined; if (keep !== false) api.close(); };
+    foot.appendChild(btn);
+    if (b.primary) api.primary = btn;
+  });
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); api.close(); }
+    else if (e.key === 'Enter' && api.primary && !o.noEnter && e.target.tagName !== 'BUTTON') { e.preventDefault(); api.primary.click(); }
+  };
+  document.addEventListener('keydown', onKey, true);
+  dlg.querySelector('[data-x]').onclick = () => api.close();
+  bd.appendChild(dlg); layer.appendChild(bd);
+  const first = dlg.querySelector('[autofocus]');
+  if (first) setTimeout(() => { first.focus(); first.select && first.select(); }, 30);
+  return api;
+};
+</script>
+</body>
+</html>

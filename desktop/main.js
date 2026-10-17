@@ -1,6 +1,6 @@
 /* =========================================================
    Kantoor Space — desktopprogramma voor Linux (Electron), gemaakt door JJ van Schelven.
-   Hetzelfde bestand voor Inkt en Cel; welke app het is staat in app.json (geschreven door build.js).
+   Hetzelfde bestand voor Inkt, Cel en Doek; welke app het is staat in app.json (geschreven door build.js).
    Start de ingebouwde deelserver (server.js) en toont de app in een eigen venster, zonder adresbalk.
    ========================================================= */
 'use strict';

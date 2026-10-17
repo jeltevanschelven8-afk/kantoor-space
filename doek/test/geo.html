@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doek — geometrietest</title>
+<!-- Doek (gemaakt door JJ van Schelven) — testpagina voor js/geo.js: vormen samenvoegen live bekijken -->
+<style>
+  :root { --bg: #f4f5f7; --card: #fff; --line: #d7dae0; --ink: #1f2328; --muted: #6a7078; --canvas: #fbfbfc; --ghost: #9aa1ab; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1d21; --card: #24272c; --line: #3a3f46; --ink: #e6e8eb; --muted: #9aa1ab; --canvas: #1f2226; --ghost: #6a7078; }
+  }
+  * { box-sizing: border-box; }
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--ink); }
+  header { padding: 14px 16px 2px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); max-width: 900px; }
+  .wrap { display: grid; grid-template-columns: minmax(300px, 1.2fr) 2fr; gap: 12px; padding: 12px 16px 16px; align-items: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .card h2 { font-size: 13px; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+  .card h2 span { color: var(--muted); font-weight: 400; white-space: nowrap; }
+  svg { width: 100%; height: auto; display: block; background: var(--canvas); border-radius: 4px; touch-action: none; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .ctl { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin-top: 8px; color: var(--muted); }
+  .ctl label { display: flex; align-items: center; gap: 6px; }
+  #editor path { cursor: grab; }
+  #editor path.drag { cursor: grabbing; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Doek — geometrietest (App.Geo)</h1>
+  <p>Sleep de afgeronde rechthoek en de ster. Elke bewerking van Vormen samenvoegen wordt live opnieuw berekend.
+     De selectievolgorde telt bij Aftrekken (eerste vorm min de rest). Het gat heeft bewust dezelfde draairichting
+     als de rand: na het gelijktrekken van de richting blijft het toch een gat.</p>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h2>Vormen <span id="info"></span></h2>
+    <svg id="editor" viewBox="0 0 480 360"></svg>
+    <div class="ctl">
+      <label>Ster draaien <input id="rot" type="range" min="0" max="360" value="0"></label>
+      <label><input id="swap" type="checkbox"> Ster eerst selecteren</label>
+      <label><input id="ring" type="checkbox"> Gat in de rechthoek</label>
+    </div>
+  </div>
+  <div class="grid" id="out"></div>
+</div>
+<script>window.App = {};</script>
+<script src="../js/geo.js"></script>
+<script>
+'use strict';
+(() => {
+  const G = App.Geo, NS = 'http://www.w3.org/2000/svg', $ = (s) => document.querySelector(s);
+  // Voorbeeldvormen als padtekst (eigen coördinaten)
+  const ROUND = 'M20 0 H160 A20 20 0 0 1 180 20 V100 A20 20 0 0 1 160 120 H20 A20 20 0 0 1 0 100 V20 A20 20 0 0 1 20 0 Z';
+  const HOLE = ' M90 30 A30 30 0 1 1 90 90 A30 30 0 1 1 90 30 Z';
+  const STAR = 'M90 0 L112.3 59.3 L175.6 62.2 L126.1 101.7 L142.9 162.8 L90 128 L37.1 162.8 L53.9 101.7 L4.4 62.2 L67.7 59.3 Z';
+  const shapes = [
+    { name: 'afgeronde rechthoek', x: 70, y: 90, rot: 0, color: '#2f6fdf', d: () => ROUND + ($('#ring').checked ? HOLE : '') },
+    { name: 'ster', x: 205, y: 105, rot: 0, color: '#e0702a', d: () => STAR },
+  ];
+  const OPS = [['union', 'Samenvoegen'], ['combine', 'Combineren'], ['intersect', 'Snijpunt'], ['subtract', 'Aftrekken'], ['fragment', 'Fragmenteren']];
+  const PAL = ['#2f6fdf', '#e0702a', '#2e9e5b', '#a347c2', '#d4a017', '#18a3b8', '#d2475f', '#6b7a8f'];
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  // Pad in eigen coördinaten (0..w, 0..h) → dia: draaien om het midden met objMatrix
+  const slideSubs = (s) => {
+    const loc = G.toLocal(G.parse(s.d()));
+    return G.transform(loc.subs, G.objMatrix(s.x, s.y, loc.w, loc.h, s.rot));
+  };
+
+  const editor = $('#editor'), out = $('#out');
+  const panels = OPS.map(([op, label]) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h2>${label} <span></span></h2>`;
+    const svg = el('svg', { viewBox: '0 0 480 360' }, card);
+    out.appendChild(card);
+    return { op, svg, info: card.querySelector('span') };
+  });
+  let raf = 0;
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(draw); };
+  const paths = shapes.map((s) => {
+    const p = el('path', { fill: s.color, 'fill-opacity': 0.35, 'fill-rule': 'evenodd', stroke: s.color, 'stroke-width': 1.5 }, editor);
+    p.addEventListener('pointerdown', (e) => {
+      p.setPointerCapture(e.pointerId);
+      p.classList.add('drag');
+      const m = editor.getScreenCTM().inverse(), cx = e.clientX, cy = e.clientY, sx = s.x, sy = s.y;
+      const move = (ev) => { s.x = sx + (ev.clientX - cx) * m.a; s.y = sy + (ev.clientY - cy) * m.d; schedule(); };
+      const up = () => { p.classList.remove('drag'); p.removeEventListener('pointermove', move); p.removeEventListener('pointerup', up); };
+      p.addEventListener('pointermove', move);
+      p.addEventListener('pointerup', up);
+    });
+    return p;
+  });
+
+  const draw = () => {
+    raf = 0;
+    const subs = shapes.map(slideSubs);
+    subs.forEach((s, i) => paths[i].setAttribute('d', G.toD(s)));
+    const order = $('#swap').checked ? [1, 0] : [0, 1];
+    const polys = order.map((i) => G.flatten(subs[i]));
+    for (const P of panels) {
+      P.svg.textContent = '';
+      for (const i of order) el('path', { d: G.toD(subs[i]), fill: 'none', stroke: 'var(--ghost)', 'stroke-dasharray': '4 3' }, P.svg);
+      const t0 = performance.now(), res = G.merge(P.op, polys), ms = performance.now() - t0;
+      const pieces = P.op === 'fragment' ? res : [res];
+      pieces.forEach((sub, k) => el('path', {
+        d: G.toD(sub), fill: P.op === 'fragment' ? PAL[k % PAL.length] : '#2f6fdf', 'fill-opacity': 0.82, stroke: '#fff', 'stroke-width': 1.2,
+      }, P.svg));
+      const n = pieces.reduce((a, s) => a + s.reduce((b, x) => b + x.pts.length, 0), 0);
+      P.info.textContent = (P.op === 'fragment' ? pieces.length + ' delen · ' : '') + n + ' punten · ' + ms.toFixed(1) + ' ms';
+    }
+    $('#info').textContent = 'volgorde: ' + order.map((i) => shapes[i].name).join(' → ');
+  };
+  $('#rot').addEventListener('input', (e) => { shapes[1].rot = +e.target.value; schedule(); });
+  $('#swap').addEventListener('change', schedule);
+  $('#ring').addEventListener('change', schedule);
+  draw();
+})();
+</script>
+</body>
+</html>

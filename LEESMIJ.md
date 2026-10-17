@@ -57,3 +57,7 @@ Inkt start standaard in het **Engels**. Nederlands kies je via **Bestand › Opt
 ## Cel (rekenblad)
 
 In de map `cel` staat **Cel**, het rekenblad in dezelfde stijl. Start het via **Cel** op het bureaublad of in het Startmenu. Zie `cel/LEESMIJ.md`.
+
+## Doek (presentaties)
+
+In de map `doek` staat **Doek**, het presentatieprogramma in dezelfde stijl: thema's, diamodellen, vormen, tabellen, grafieken, diagrammen, animaties, overgangen (ook Morph), een presentatorweergave en video maken. Het opent en bewaart .pptx-bestanden. Start het via **Doek** op het bureaublad of in het Startmenu. Zie `doek/LEESMIJ.md`.
